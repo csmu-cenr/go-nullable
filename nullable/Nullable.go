@@ -2,6 +2,7 @@ package nullable
 
 import (
 	"fmt"
+	"time"
 )
 
 type Nullable[T any] struct {
@@ -32,13 +33,17 @@ func (n Nullable[T]) ValueOrZero() T {
 }
 
 func (n Nullable[T]) Equal(other Nullable[T]) bool {
-	if n.HasValue != other.HasValue {
-		return false
+	switch any(n.Value).(type) {
+	case time.Time:
+		nValue := any(n.Value).(time.Time)
+		otherValue := any(other.Value).(time.Time)
+		return n.HasValue == other.HasValue && (!n.HasValue || nValue.Equal(otherValue))
 	}
-	if !n.HasValue {
-		return true // nil == nil
-	}
-	return any(n.Value) == any(other.Value)
+	return n.ExactEqual(other)
+}
+
+func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
+	return n.HasValue == other.HasValue && (!n.HasValue || any(n.Value) == any(other.Value))
 }
 
 func (n Nullable[T]) String() string {

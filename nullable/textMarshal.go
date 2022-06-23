@@ -83,22 +83,34 @@ func marshalTextBool(b Nullable[bool]) ([]byte, error) {
 
 func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	value := any(&n.Value)
+	str := string(text)
+
+	if str == "" || str == "null" {
+		n.HasValue = false
+		return nil
+	}
+
 	txt, ok := value.(encoding.TextUnmarshaler)
 	if ok {
-		return txt.UnmarshalText(text)
+		err := txt.UnmarshalText(text)
+		if err != nil {
+			n.HasValue = false
+			return err
+		}
+		n.HasValue = true
+		return nil
 	}
 
 	switch any(n.Value).(type) {
 	case bool:
-		return unmarshalTextBool(text, any(n).(*Nullable[bool]))
+		return unmarshalTextBool(str, any(n).(*Nullable[bool]))
 	case float32, float64:
-		return unmarshalTextFloat(text, n)
+		return unmarshalTextFloat(str, n)
 	case int, int8, int16, int32, int64:
-		return unmarshalTextInt(text, n)
+		return unmarshalTextInt(str, n)
 	case string:
-		s := string(text)
-		n.Value = any(s).(T)
-		n.HasValue = s != ""
+		n.Value = any(str).(T)
+		n.HasValue = str != ""
 		return nil
 	}
 
@@ -106,8 +118,7 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	return fmt.Errorf("type %T unmarshal", ref)
 }
 
-func unmarshalTextBool(text []byte, b *Nullable[bool]) error {
-	str := string(text)
+func unmarshalTextBool(str string, b *Nullable[bool]) error {
 	switch str {
 	case "", "null":
 		b.HasValue = false
@@ -123,8 +134,7 @@ func unmarshalTextBool(text []byte, b *Nullable[bool]) error {
 	return nil
 }
 
-func unmarshalTextFloat[T any](text []byte, f *Nullable[T]) error {
-	str := string(text)
+func unmarshalTextFloat[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
 		f.HasValue = false
 		return nil
@@ -139,7 +149,7 @@ func unmarshalTextFloat[T any](text []byte, f *Nullable[T]) error {
 		size = 64
 	}
 
-	n, err := strconv.ParseFloat(string(text), size)
+	n, err := strconv.ParseFloat(str, size)
 	if err != nil {
 		return fmt.Errorf("null: couldn't unmarshal text: %w", err)
 	}
@@ -155,8 +165,7 @@ func unmarshalTextFloat[T any](text []byte, f *Nullable[T]) error {
 	return err
 }
 
-func unmarshalTextInt[T any](text []byte, f *Nullable[T]) error {
-	str := string(text)
+func unmarshalTextInt[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
 		f.HasValue = false
 		return nil

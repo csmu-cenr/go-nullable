@@ -3,6 +3,7 @@ package nullable
 import (
 	"encoding/json"
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -29,7 +30,7 @@ func TestBoolFromPtr(t *testing.T) {
 func TestUnmarshalBool(t *testing.T) {
 	var b Nullable[bool]
 	err := json.Unmarshal(boolJSON, &b)
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertBool(t, b, "bool json")
 
 	var nb Nullable[bool]
@@ -40,7 +41,7 @@ func TestUnmarshalBool(t *testing.T) {
 
 	var null Nullable[bool]
 	err = json.Unmarshal(nullJSON, &null)
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertNull(t, null, "null json")
 
 	var badType Nullable[bool]
@@ -61,22 +62,22 @@ func TestUnmarshalBool(t *testing.T) {
 func TestTextUnmarshalBool(t *testing.T) {
 	var b Nullable[bool]
 	err := b.UnmarshalText([]byte("true"))
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertBool(t, b, "UnmarshalText() bool")
 
 	var zero Nullable[bool]
 	err = zero.UnmarshalText([]byte("false"))
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertFalseBool(t, zero, "UnmarshalText() false")
 
 	var blank Nullable[bool]
 	err = blank.UnmarshalText([]byte(""))
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertNull(t, blank, "UnmarshalText() empty bool")
 
 	var null Nullable[bool]
 	err = null.UnmarshalText([]byte("null"))
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertNull(t, null, `UnmarshalText() "null"`)
 
 	var invalid Nullable[bool]
@@ -90,36 +91,36 @@ func TestTextUnmarshalBool(t *testing.T) {
 func TestMarshalBool(t *testing.T) {
 	b := Value(true)
 	data, err := json.Marshal(b)
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "true", "non-empty json marshal")
 
 	zero := Value(false)
 	data, err = json.Marshal(zero)
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "false", "zero json marshal")
 
 	// invalid values should be encoded as null
 	null := Nullable[bool]{Value: false, HasValue: false}
 	data, err = json.Marshal(null)
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
 func TestMarshalBoolText(t *testing.T) {
 	b := Value(true)
 	data, err := b.MarshalText()
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "true", "non-empty text marshal")
 
 	zero := Value(false)
 	data, err = zero.MarshalText()
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "false", "zero text marshal")
 
 	// invalid values should be encoded as null
 	null := Nullable[bool]{HasValue: false}
 	data, err = null.MarshalText()
-	maybePanic(err)
+	assert.Nil(t, err)
 	assertJSONEquals(t, data, "", "null text marshal")
 }
 

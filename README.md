@@ -14,15 +14,39 @@ type in C#. It exposes two properties, the boolean `HasValue` and the actual `Va
 The struct implements `encoding.TextMarshaler`, `encoding.TextUnmarshaler`, `json.Marshaler` and `json.Unmarshaler`.
 A null objects MarhsalText will return a blank string.
 
+### Struct signature
+The struct looks just like nullable data types in .NET.
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/Uffe-Code/go-nullable/nullable"
+)
+
+func main() {
+	n := nullable.Null[int16]()
+	n.HasValue // is FALSE
+	n.Value    // is just default value (0)
+
+	m := nullable.Value(10)
+	m.HasValue // is TRUE
+	m.Value    // is 10
+
+	str := fmt.Sprintf("%s", m) // will be "10"
+}
+```
+
 ### Usage
 
 This type can be used as properties for API structs.
 
 ```go
 type Task struct {
-TaskId    int                    `json:"task_id"`
-ProjectId nullable.Nullable[int] `json:"project_id"`
-Subject   string                 `json:"subject"`
+  TaskId    int                    `json:"task_id"`
+  ProjectId nullable.Nullable[int] `json:"project_id"`
+  Subject   string                 `json:"subject"`
 }
 ```
 

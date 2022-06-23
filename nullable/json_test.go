@@ -28,6 +28,11 @@ var (
 	intJSON       = []byte(`12345`)
 	intStringJSON = []byte(`"12345"`)
 	nullIntJSON   = []byte(`{"Int64":12345,"Valid":true}`)
+
+	floatJSON       = []byte(`1.2345`)
+	floatStringJSON = []byte(`"1.2345"`)
+	floatBlankJSON  = []byte(`""`)
+	nullFloatJSON   = []byte(`{"Float64":1.2345,"Valid":true}`)
 )
 
 func maybePanic(err error) {

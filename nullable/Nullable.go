@@ -1,8 +1,6 @@
 package nullable
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 )
 
@@ -41,30 +39,6 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 		return true // nil == nil
 	}
 	return any(n.Value) == any(other.Value)
-}
-
-var nullBytes = []byte("null")
-
-func (n Nullable[T]) MarshalJSON() ([]byte, error) {
-	if !n.HasValue {
-		return nullBytes, nil
-	}
-	return json.Marshal(n.Value)
-}
-
-func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
-	if bytes.Equal(data, nullBytes) {
-		n.HasValue = false
-		return nil
-	}
-
-	err := json.Unmarshal(data, &n.Value)
-	if err != nil {
-		return fmt.Errorf("null: could not unmarshal JSON: %w", err)
-	}
-
-	n.HasValue = true
-	return nil
 }
 
 func (n Nullable[T]) String() string {

@@ -22,7 +22,6 @@ var (
 	invalidJSON = []byte(`:)`)
 
 	boolJSON     = []byte(`true`)
-	falseJSON    = []byte(`false`)
 	nullBoolJSON = []byte(`{"Value":true,"HasValue":true}`)
 
 	intJSON       = []byte(`12345`)
@@ -33,6 +32,10 @@ var (
 	floatStringJSON = []byte(`"1.2345"`)
 	floatBlankJSON  = []byte(`""`)
 	nullFloatJSON   = []byte(`{"Float64":1.2345,"Valid":true}`)
+
+	stringJSON      = []byte(`"test"`)
+	blankStringJSON = []byte(`""`)
+	nullStringJSON  = []byte(`{"String":"test","HasValue":true}`)
 )
 
 func maybePanic(err error) {

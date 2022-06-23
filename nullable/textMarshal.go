@@ -25,6 +25,8 @@ func (n Nullable[T]) MarshalText() ([]byte, error) {
 		return marshalTextBool(any(n).(Nullable[bool]))
 	case int, int8, int16, int32, int64:
 		return marshalTextInt(n)
+	case string:
+		return []byte(any(n.Value).(string)), nil
 	}
 
 	var ref T
@@ -93,6 +95,11 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 		return unmarshalTextFloat(text, n)
 	case int, int8, int16, int32, int64:
 		return unmarshalTextInt(text, n)
+	case string:
+		s := string(text)
+		n.Value = any(s).(T)
+		n.HasValue = s != ""
+		return nil
 	}
 
 	var ref T

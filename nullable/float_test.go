@@ -10,7 +10,7 @@ import (
 
 func TestFloatFrom(t *testing.T) {
 	f := Value(1.2345)
-	assertFloat(t, f, "Value()")
+	assertFloat64(t, f, "Value()")
 
 	zero := Value(0)
 	if !zero.HasValue {
@@ -22,22 +22,25 @@ func TestFloatFromPtr(t *testing.T) {
 	n := float64(1.2345)
 	iptr := &n
 	f := ValueFromPtr(iptr)
-	assertFloat(t, f, "ValueFromPtr()")
+	assertFloat64(t, f, "ValueFromPtr()")
 
 	null := ValueFromPtr[float64](nil)
-	assertNullFloat(t, null, "ValueFromPtr(nil)")
+	assertNull(t, null, "ValueFromPtr(nil)")
+
+	null32 := ValueFromPtr[float32](nil)
+	assertNull(t, null32, "ValueFromPtr(nil)")
 }
 
 func TestUnmarshalFloat(t *testing.T) {
 	var f Nullable[float64]
 	err := json.Unmarshal(floatJSON, &f)
 	assert.Nil(t, err)
-	assertFloat(t, f, "float json")
+	assertFloat64(t, f, "float json")
 
 	var sf Nullable[float64]
 	err = json.Unmarshal(floatStringJSON, &sf)
 	assert.Nil(t, err)
-	assertFloat(t, sf, "string float json")
+	assertFloat64(t, sf, "string float json")
 
 	var nf Nullable[float64]
 	err = json.Unmarshal(nullFloatJSON, &nf)
@@ -46,7 +49,7 @@ func TestUnmarshalFloat(t *testing.T) {
 	var null Nullable[float64]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNullFloat(t, null, "null json")
+	assertNull(t, null, "null json")
 
 	var blank Nullable[float64]
 	err = json.Unmarshal(floatBlankJSON, &blank)
@@ -68,21 +71,61 @@ func TestUnmarshalFloat(t *testing.T) {
 	}
 }
 
+func TestUnmarshalFloat32(t *testing.T) {
+	var f Nullable[float32]
+	err := json.Unmarshal(floatJSON, &f)
+	assert.Nil(t, err)
+	assertFloat32(t, f, "float json")
+
+	var sf Nullable[float32]
+	err = json.Unmarshal(floatStringJSON, &sf)
+	assert.Nil(t, err)
+	assertFloat32(t, sf, "string float json")
+
+	var nf Nullable[float32]
+	err = json.Unmarshal(nullFloatJSON, &nf)
+	assert.Error(t, err)
+
+	var null Nullable[float32]
+	err = json.Unmarshal(nullJSON, &null)
+	assert.Nil(t, err)
+	assertNull(t, null, "null json")
+
+	var blank Nullable[float32]
+	err = json.Unmarshal(floatBlankJSON, &blank)
+	if err == nil {
+		panic("expected error")
+	}
+
+	var badType Nullable[float32]
+	err = json.Unmarshal(boolJSON, &badType)
+	if err == nil {
+		panic("err should not be nil")
+	}
+
+	var invalid Nullable[float32]
+	err = invalid.UnmarshalJSON(invalidJSON)
+	var syntaxError *json.SyntaxError
+	if !errors.As(err, &syntaxError) {
+		t.Errorf("expected wrapped json.SyntaxError, not %T", err)
+	}
+}
+
 func TestTextUnmarshalFloat(t *testing.T) {
 	var f Nullable[float64]
 	err := f.UnmarshalText([]byte("1.2345"))
 	assert.Nil(t, err)
-	assertFloat(t, f, "UnmarshalText() float")
+	assertFloat64(t, f, "UnmarshalText() float")
 
 	var blank Nullable[float64]
 	err = blank.UnmarshalText([]byte(""))
 	assert.Nil(t, err)
-	assertNullFloat(t, blank, "UnmarshalText() empty float")
+	assertNull(t, blank, "UnmarshalText() empty float")
 
 	var null Nullable[float64]
 	err = null.UnmarshalText([]byte("null"))
 	assert.Nil(t, err)
-	assertNullFloat(t, null, `UnmarshalText() "null"`)
+	assertNull(t, null, `UnmarshalText() "null"`)
 
 	var invalid Nullable[float64]
 	err = invalid.UnmarshalText([]byte("hello world"))
@@ -99,6 +142,19 @@ func TestMarshalFloat(t *testing.T) {
 
 	// invalid values should be encoded as null
 	null := Nullable[float64]{0, false}
+	data, err = json.Marshal(null)
+	assert.Nil(t, err)
+	assertJSONEquals(t, data, "null", "null json marshal")
+}
+
+func TestMarshalFloat32(t *testing.T) {
+	f := Value[float32](1.2345)
+	data, err := json.Marshal(f)
+	assert.Nil(t, err)
+	assertJSONEquals(t, data, "1.2345", "non-empty json marshal")
+
+	// invalid values should be encoded as null
+	null := Nullable[float32]{0, false}
 	data, err = json.Marshal(null)
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, "null", "null json marshal")
@@ -146,30 +202,30 @@ func TestFloatValueOrZero(t *testing.T) {
 func TestFloatEqual(t *testing.T) {
 	f1 := Nullable[float64]{10, false}
 	f2 := Nullable[float64]{10, false}
-	assertFloatEqualIsTrue(t, f1, f2)
+	assertEqual(t, f1, f2)
 
 	f1 = Nullable[float64]{10, false}
 	f2 = Nullable[float64]{20, false}
-	assertFloatEqualIsTrue(t, f1, f2)
+	assertEqual(t, f1, f2)
 
 	f1 = Nullable[float64]{10, true}
 	f2 = Nullable[float64]{10, true}
-	assertFloatEqualIsTrue(t, f1, f2)
+	assertEqual(t, f1, f2)
 
 	f1 = Nullable[float64]{10, true}
 	f2 = Nullable[float64]{10, false}
-	assertFloatEqualIsFalse(t, f1, f2)
+	assertNotEqual(t, f1, f2)
 
 	f1 = Nullable[float64]{10, false}
 	f2 = Nullable[float64]{10, true}
-	assertFloatEqualIsFalse(t, f1, f2)
+	assertNotEqual(t, f1, f2)
 
 	f1 = Nullable[float64]{10, true}
 	f2 = Nullable[float64]{20, true}
-	assertFloatEqualIsFalse(t, f1, f2)
+	assertNotEqual(t, f1, f2)
 }
 
-func assertFloat(t *testing.T, f Nullable[float64], from string) {
+func assertFloat64(t *testing.T, f Nullable[float64], from string) {
 	if f.Value != 1.2345 {
 		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Value, 1.2345)
 	}
@@ -178,22 +234,11 @@ func assertFloat(t *testing.T, f Nullable[float64], from string) {
 	}
 }
 
-func assertNullFloat(t *testing.T, f Nullable[float64], from string) {
-	if f.HasValue {
-		t.Error(from, "is valid, but should be invalid")
+func assertFloat32(t *testing.T, f Nullable[float32], from string) {
+	if f.Value != 1.2345 {
+		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Value, 1.2345)
 	}
-}
-
-func assertFloatEqualIsTrue(t *testing.T, a, b Nullable[float64]) {
-	t.Helper()
-	if !a.Equal(b) {
-		t.Errorf("Equal() of Nullable[float64{%v, HasValue:%t} and Nullable[float64{%v, HasValue:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
-	}
-}
-
-func assertFloatEqualIsFalse(t *testing.T, a, b Nullable[float64]) {
-	t.Helper()
-	if a.Equal(b) {
-		t.Errorf("Equal() of Float{%v, HasValue:%t} and Float{%v, HasValue:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
+	if !f.HasValue {
+		t.Error(from, "is invalid, but should be valid")
 	}
 }

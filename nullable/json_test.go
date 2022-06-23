@@ -41,17 +41,8 @@ func maybePanic(err error) {
 	}
 }
 
-func assertStr(t *testing.T, s Nullable[string], from string) {
-	if s.Value != "test" {
-		t.Errorf("bad %s string: %s ≠ %s\n", from, s.Value, "test")
-	}
-	if !s.HasValue {
-		t.Error(from, "is invalid, but should be valid")
-	}
-}
-
-func assertNullStr(t *testing.T, s Nullable[string], from string) {
-	if s.HasValue {
+func assertNull[T any](t *testing.T, f Nullable[T], from string) {
+	if f.HasValue {
 		t.Error(from, "is valid, but should be invalid")
 	}
 }
@@ -62,17 +53,17 @@ func assertJSONEquals(t *testing.T, data []byte, cmp string, from string) {
 	}
 }
 
-func assertStringEqualIsTrue(t *testing.T, a, b Nullable[string]) {
+func assertEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if !a.Equal(b) {
-		t.Errorf("Equal() of String{\"%v\", Valid:%t} and String{\"%v\", Valid:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
 	}
 }
 
-func assertStringEqualIsFalse(t *testing.T, a, b Nullable[string]) {
+func assertNotEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if a.Equal(b) {
-		t.Errorf("Equal() of String{\"%v\", Valid:%t} and String{\"%v\", Valid:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
 	}
 }
 

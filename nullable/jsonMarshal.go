@@ -28,25 +28,41 @@ func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	f, ok := any(n).(*Nullable[float64])
-	if ok {
-		return unmarshalFloat64StringJson(f, data)
+	switch any(n.Value).(type) {
+	case float32, float64:
+		return unmarshalFloatStringJson(n, data)
 	}
 
 	return fmt.Errorf("null: could not unmarshal JSON: %w", err)
 }
 
-func unmarshalFloat64StringJson(f *Nullable[float64], data []byte) error {
+func unmarshalFloatStringJson[T any](f *Nullable[T], data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return fmt.Errorf("null: couldn't unmarshal number string: %w", err)
 	}
-	n, err := strconv.ParseFloat(str, 64)
+
+	var size int
+	v := any(f.Value)
+	switch v.(type) {
+	case float32:
+		size = 32
+	case float64:
+		size = 64
+	}
+
+	n, err := strconv.ParseFloat(str, size)
 	if err != nil {
 		return fmt.Errorf("null: couldn't convert string to float: %w", err)
 	}
 
-	f.Value = n
+	switch v.(type) {
+	case float32:
+		f.Value = any(float32(n)).(T)
+	case float64:
+		f.Value = any(n).(T)
+	}
+
 	f.HasValue = true
 	return nil
 }

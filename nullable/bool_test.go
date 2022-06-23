@@ -23,7 +23,7 @@ func TestBoolFromPtr(t *testing.T) {
 	assertBool(t, b, "ValueFromPtr()")
 
 	null := ValueFromPtr[bool](nil)
-	assertNullBool(t, null, "ValueFromPtr(nil)")
+	assertNull(t, null, "ValueFromPtr(nil)")
 }
 
 func TestUnmarshalBool(t *testing.T) {
@@ -41,14 +41,14 @@ func TestUnmarshalBool(t *testing.T) {
 	var null Nullable[bool]
 	err = json.Unmarshal(nullJSON, &null)
 	maybePanic(err)
-	assertNullBool(t, null, "null json")
+	assertNull(t, null, "null json")
 
 	var badType Nullable[bool]
 	err = json.Unmarshal(intJSON, &badType)
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assertNullBool(t, badType, "wrong type json")
+	assertNull(t, badType, "wrong type json")
 
 	var invalid Nullable[bool]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -72,19 +72,19 @@ func TestTextUnmarshalBool(t *testing.T) {
 	var blank Nullable[bool]
 	err = blank.UnmarshalText([]byte(""))
 	maybePanic(err)
-	assertNullBool(t, blank, "UnmarshalText() empty bool")
+	assertNull(t, blank, "UnmarshalText() empty bool")
 
 	var null Nullable[bool]
 	err = null.UnmarshalText([]byte("null"))
 	maybePanic(err)
-	assertNullBool(t, null, `UnmarshalText() "null"`)
+	assertNull(t, null, `UnmarshalText() "null"`)
 
 	var invalid Nullable[bool]
 	err = invalid.UnmarshalText([]byte(":D"))
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assertNullBool(t, invalid, "invalid json")
+	assertNull(t, invalid, "invalid json")
 }
 
 func TestMarshalBool(t *testing.T) {
@@ -138,27 +138,27 @@ func TestBoolValueOrZero(t *testing.T) {
 func TestBoolEqual(t *testing.T) {
 	b1 := Nullable[bool]{Value: true, HasValue: false}
 	b2 := Nullable[bool]{Value: true, HasValue: false}
-	assertBoolEqualIsTrue(t, b1, b2)
+	assertEqual(t, b1, b2)
 
 	b1 = Nullable[bool]{Value: true, HasValue: false}
 	b2 = Nullable[bool]{Value: false, HasValue: false}
-	assertBoolEqualIsTrue(t, b1, b2)
+	assertEqual(t, b1, b2)
 
 	b1 = Nullable[bool]{Value: true, HasValue: true}
 	b2 = Nullable[bool]{Value: true, HasValue: true}
-	assertBoolEqualIsTrue(t, b1, b2)
+	assertEqual(t, b1, b2)
 
 	b1 = Nullable[bool]{Value: true, HasValue: true}
 	b2 = Nullable[bool]{Value: true, HasValue: false}
-	assertBoolEqualIsFalse(t, b1, b2)
+	assertNotEqual(t, b1, b2)
 
 	b1 = Nullable[bool]{Value: true, HasValue: false}
 	b2 = Nullable[bool]{Value: true, HasValue: true}
-	assertBoolEqualIsFalse(t, b1, b2)
+	assertNotEqual(t, b1, b2)
 
 	b1 = Nullable[bool]{Value: true, HasValue: true}
 	b2 = Nullable[bool]{Value: false, HasValue: true}
-	assertBoolEqualIsFalse(t, b1, b2)
+	assertNotEqual(t, b1, b2)
 }
 
 func assertBool(t *testing.T, b Nullable[bool], from string) {
@@ -176,25 +176,5 @@ func assertFalseBool(t *testing.T, b Nullable[bool], from string) {
 	}
 	if !b.HasValue {
 		t.Error(from, "is invalid, but should be valid")
-	}
-}
-
-func assertNullBool(t *testing.T, b Nullable[bool], from string) {
-	if b.HasValue {
-		t.Error(from, "is valid, but should be invalid")
-	}
-}
-
-func assertBoolEqualIsTrue(t *testing.T, a, b Nullable[bool]) {
-	t.Helper()
-	if !a.Equal(b) {
-		t.Errorf("Equal() of Value{%t, HasValue:%t} and Value{%t, HasValue:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
-	}
-}
-
-func assertBoolEqualIsFalse(t *testing.T, a, b Nullable[bool]) {
-	t.Helper()
-	if a.Equal(b) {
-		t.Errorf("Equal() of Value{%t, HasValue:%t} and Value{%t, HasValue:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
 	}
 }

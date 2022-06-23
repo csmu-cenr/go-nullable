@@ -1,4 +1,4 @@
-## Go Nullable
+## Go Nullable [![GoDoc](https://godoc.org/github.com/Uffe-Code/go-nullable/nullable?status.svg)](https://godoc.org/github.com/Uffe-Code/go-nullable/nullable)
 
 ```go
 import "github.com/Uffe-Code/go-nullable/nullable"

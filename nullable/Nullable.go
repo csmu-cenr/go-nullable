@@ -24,6 +24,10 @@ func ValueFromPtr[T any](value *T) Nullable[T] {
 	return Value(*value)
 }
 
+func Null[T any]() Nullable[T] {
+	return Nullable[T]{}
+}
+
 func (n Nullable[T]) ValueOrZero() T {
 	if !n.HasValue {
 		var ref T

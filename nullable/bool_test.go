@@ -35,9 +35,7 @@ func TestUnmarshalBool(t *testing.T) {
 
 	var nb Nullable[bool]
 	err = json.Unmarshal(nullBoolJSON, &nb)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.NotNil(t, err)
 
 	var null Nullable[bool]
 	err = json.Unmarshal(nullJSON, &null)
@@ -100,7 +98,7 @@ func TestMarshalBool(t *testing.T) {
 	assertJSONEquals(t, data, "false", "zero json marshal")
 
 	// invalid values should be encoded as null
-	null := Nullable[bool]{Value: false, HasValue: false}
+	null := Null[bool]()
 	data, err = json.Marshal(null)
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, "null", "null json marshal")
@@ -118,7 +116,7 @@ func TestMarshalBoolText(t *testing.T) {
 	assertJSONEquals(t, data, "false", "zero text marshal")
 
 	// invalid values should be encoded as null
-	null := Nullable[bool]{HasValue: false}
+	null := Null[bool]()
 	data, err = null.MarshalText()
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, "", "null text marshal")

@@ -38,19 +38,15 @@ var (
 	nullStringJSON  = []byte(`{"String":"test","HasValue":true}`)
 )
 
-func maybePanic(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 func assertNull[T any](t *testing.T, f Nullable[T], from string) {
+	t.Helper()
 	if f.HasValue {
 		t.Error(from, "is valid, but should be invalid")
 	}
 }
 
 func assertJSONEquals(t *testing.T, data []byte, cmp string, from string) {
+	t.Helper()
 	if string(data) != cmp {
 		t.Errorf("bad %s data: %s ≠ %s\n", from, data, cmp)
 	}

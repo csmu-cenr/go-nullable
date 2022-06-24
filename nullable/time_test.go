@@ -22,7 +22,7 @@ var (
 	badObject     = []byte(`{"hello": "world"}`)
 )
 
-func TestUnmarshalTimeJSON(t *testing.T) {
+func Test_Json_unmarshal_time(t *testing.T) {
 	var ti Nullable[time.Time]
 	err := json.Unmarshal(timeJSON, &ti)
 	assert.Nil(t, err)
@@ -68,7 +68,7 @@ func TestUnmarshalTimeJSON(t *testing.T) {
 	assert.False(t, wrongType.IsValid)
 }
 
-func TestUnmarshalTimeText(t *testing.T) {
+func Test_Text_unmarshal_time(t *testing.T) {
 	ti := Value(timeValue1)
 	txt, err := ti.MarshalText()
 	assert.Nil(t, err)
@@ -95,7 +95,7 @@ func TestUnmarshalTimeText(t *testing.T) {
 	assert.False(t, invalid.IsValid)
 }
 
-func TestMarshalTime(t *testing.T) {
+func Test_Json_marshal_time(t *testing.T) {
 	ti := Value(timeValue1)
 	data, err := json.Marshal(ti)
 	assert.Nil(t, err)
@@ -107,12 +107,12 @@ func TestMarshalTime(t *testing.T) {
 	assertJSONEquals(t, data, string(nullJSON), "null json marshal")
 }
 
-func TestTimeFrom(t *testing.T) {
+func Test_Time_from_value(t *testing.T) {
 	ti := Value(timeValue1)
 	assertTime(t, ti, "Data() time.Time")
 }
 
-func TestTimeFromPointer(t *testing.T) {
+func Test_Time_from_pointer(t *testing.T) {
 	ti := ValueFromPointer[time.Time](&timeValue1)
 	assertTime(t, ti, "ValueFromPointer[time.Time() time")
 
@@ -120,7 +120,7 @@ func TestTimeFromPointer(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestTimeValueOrZero(t *testing.T) {
+func Test_Time_ValueOrZero(t *testing.T) {
 	valid := Value(timeValue1)
 	if valid.ValueOrZero() != valid.Data || valid.ValueOrZero().IsZero() {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
@@ -133,7 +133,7 @@ func TestTimeValueOrZero(t *testing.T) {
 	}
 }
 
-func TestTimeEqual(t *testing.T) {
+func Test_Time_Equal(t *testing.T) {
 	t1 := Nullable[time.Time]{timeValue1, false}
 	t2 := Nullable[time.Time]{timeValue2, false}
 	assertEqual(t, t1, t2)
@@ -163,37 +163,37 @@ func TestTimeEqual(t *testing.T) {
 	assertNotEqual(t, t1, t2)
 }
 
-func TestTimeExactEqual(t *testing.T) {
+func Test_Time_ExactEqual(t *testing.T) {
 	t1 := Nullable[time.Time]{timeValue1, false}
 	t2 := Nullable[time.Time]{timeValue1, false}
-	assertTimeExactEqualIsTrue(t, t1, t2)
+	assertExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, false}
 	t2 = Nullable[time.Time]{timeValue2, false}
-	assertTimeExactEqualIsTrue(t, t1, t2)
+	assertExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, true}
 	t2 = Nullable[time.Time]{timeValue1, true}
-	assertTimeExactEqualIsTrue(t, t1, t2)
+	assertExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, true}
 	t2 = Nullable[time.Time]{timeValue1, false}
-	assertTimeExactEqualIsFalse(t, t1, t2)
+	assertNotExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, false}
 	t2 = Nullable[time.Time]{timeValue1, true}
-	assertTimeExactEqualIsFalse(t, t1, t2)
+	assertNotExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, true}
 	t2 = Nullable[time.Time]{timeValue2, true}
-	assertTimeExactEqualIsFalse(t, t1, t2)
+	assertNotExactEqual(t, t1, t2)
 
 	t1 = Nullable[time.Time]{timeValue1, true}
 	t2 = Nullable[time.Time]{timeValue3, true}
-	assertTimeExactEqualIsFalse(t, t1, t2)
+	assertNotExactEqual(t, t1, t2)
 }
 
-func TestTimeScanValue(t *testing.T) {
+func Test_Time_Scan(t *testing.T) {
 	var ti Nullable[time.Time]
 	err := ti.Scan(timeValue1)
 	assert.Nil(t, err)
@@ -212,9 +212,7 @@ func TestTimeScanValue(t *testing.T) {
 
 	var wrong Nullable[time.Time]
 	err = wrong.Scan(int64(42))
-	if err == nil {
-		t.Error("expected error")
-	}
+	assert.NotNil(t, err)
 }
 
 func assertTime(t *testing.T, ti Nullable[time.Time], from string) {
@@ -226,14 +224,14 @@ func assertTime(t *testing.T, ti Nullable[time.Time], from string) {
 	}
 }
 
-func assertTimeExactEqualIsTrue(t *testing.T, a, b Nullable[time.Time]) {
+func assertExactEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if !a.ExactEqual(b) {
 		t.Errorf("ExactEqual() of Time{%v, IsValid:%t} and Time{%v, IsValid:%t} should return true", a.Data, a.IsValid, b.Data, b.IsValid)
 	}
 }
 
-func assertTimeExactEqualIsFalse(t *testing.T, a, b Nullable[time.Time]) {
+func assertNotExactEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if a.ExactEqual(b) {
 		t.Errorf("ExactEqual() of Time{%v, IsValid:%t} and Time{%v, IsValid:%t} should return false", a.Data, a.IsValid, b.Data, b.IsValid)

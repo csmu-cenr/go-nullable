@@ -11,7 +11,7 @@ type stringInStruct struct {
 	Test Nullable[string] `json:"test,omitempty"`
 }
 
-func TestStringFrom(t *testing.T) {
+func Test_String_from_value(t *testing.T) {
 	str := Value("test")
 	assertStr(t, str, "Data() string")
 
@@ -21,7 +21,7 @@ func TestStringFrom(t *testing.T) {
 	}
 }
 
-func TestStringFromPointer(t *testing.T) {
+func Test_String_from_pointer(t *testing.T) {
 	s := "test"
 	sPointer := &s
 	str := ValueFromPointer(sPointer)
@@ -31,7 +31,7 @@ func TestStringFromPointer(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestUnmarshalString(t *testing.T) {
+func Test_Json_unmarshal_string(t *testing.T) {
 	var str Nullable[string]
 	err := json.Unmarshal(stringJSON, &str)
 	assert.Nil(t, err)
@@ -71,7 +71,7 @@ func TestUnmarshalString(t *testing.T) {
 	assert.False(t, invalid.IsValid)
 }
 
-func TestTextUnmarshalString(t *testing.T) {
+func Test_Text_unmarshal_string(t *testing.T) {
 	var str Nullable[string]
 	err := str.UnmarshalText([]byte("test"))
 	assert.Nil(t, err)
@@ -83,7 +83,7 @@ func TestTextUnmarshalString(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestMarshalString(t *testing.T) {
+func Test_Json_marshal_string(t *testing.T) {
 	str := Value("test")
 	data, err := json.Marshal(str)
 	assert.Nil(t, err)
@@ -110,7 +110,7 @@ func TestMarshalString(t *testing.T) {
 	assertJSONEquals(t, data, "", "string marshal text")
 }
 
-func TestMarshalStringInStruct(t *testing.T) {
+func Test_Json_marshal_string_in_struct(t *testing.T) {
 	obj := stringInStruct{Test: Value("")}
 	data, err := json.Marshal(obj)
 	assert.Nil(t, err)
@@ -122,7 +122,7 @@ func TestMarshalStringInStruct(t *testing.T) {
 	assertJSONEquals(t, data, `{"test":null}`, "null string in struct")
 }
 
-func TestStringValueOrZero(t *testing.T) {
+func Test_String_ValueOrZero(t *testing.T) {
 	valid := Nullable[string]{"test", true}
 	if valid.ValueOrZero() != "test" {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
@@ -134,7 +134,7 @@ func TestStringValueOrZero(t *testing.T) {
 	}
 }
 
-func TestStringEqual(t *testing.T) {
+func Test_String_equal(t *testing.T) {
 	str1 := Nullable[string]{"foo", false}
 	str2 := Nullable[string]{"foo", false}
 	assertEqual(t, str1, str2)
@@ -160,7 +160,7 @@ func TestStringEqual(t *testing.T) {
 	assertNotEqual(t, str1, str2)
 }
 
-func TestStringScan(t *testing.T) {
+func Test_String_scan(t *testing.T) {
 	var str Nullable[string]
 	err := str.Scan("test")
 	assert.Nil(t, err)

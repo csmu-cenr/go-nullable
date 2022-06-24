@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestIntFrom(t *testing.T) {
+func Test_Int_from_value(t *testing.T) {
 	i := Value(12345)
 	assertIntValue(t, i, "Data()")
 
@@ -19,7 +19,7 @@ func TestIntFrom(t *testing.T) {
 	}
 }
 
-func TestIntFromPointer(t *testing.T) {
+func Test_Int_from_pointer(t *testing.T) {
 	n := 12345
 	intPointer := &n
 	i := ValueFromPointer(intPointer)
@@ -29,7 +29,7 @@ func TestIntFromPointer(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestUnmarshalInt(t *testing.T) {
+func Test_Json_unmarshal_int(t *testing.T) {
 	var i Nullable[int]
 	err := json.Unmarshal(intJSON, &i)
 	assert.Nil(t, err)
@@ -73,7 +73,7 @@ func TestUnmarshalInt(t *testing.T) {
 	assert.False(t, invalid.IsValid)
 }
 
-func TestUnmarshalNonIntegerNumber(t *testing.T) {
+func Test_Json_unmarshal_non_integer_number(t *testing.T) {
 	var i Nullable[int]
 	err := json.Unmarshal(floatJSON, &i)
 	if err == nil {
@@ -81,7 +81,7 @@ func TestUnmarshalNonIntegerNumber(t *testing.T) {
 	}
 }
 
-func TestUnmarshalInt64Overflow(t *testing.T) {
+func Test_Json_unmarshal_int64_overflow(t *testing.T) {
 	int64Overflow := uint64(math.MaxInt64)
 
 	// Max int64 should decode successfully
@@ -97,7 +97,7 @@ func TestUnmarshalInt64Overflow(t *testing.T) {
 	}
 }
 
-func TestTextUnmarshalInt(t *testing.T) {
+func Test_Text_unmarshal_int(t *testing.T) {
 	var i Nullable[int]
 	err := i.UnmarshalText([]byte("12345"))
 	assert.Nil(t, err)
@@ -120,7 +120,7 @@ func TestTextUnmarshalInt(t *testing.T) {
 	}
 }
 
-func TestMarshalInt(t *testing.T) {
+func Test_Json_marshal_int(t *testing.T) {
 	i := Value(12345)
 	data, err := json.Marshal(i)
 	assert.Nil(t, err)
@@ -133,7 +133,7 @@ func TestMarshalInt(t *testing.T) {
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
-func TestMarshalIntText(t *testing.T) {
+func Test_Text_marshal_int(t *testing.T) {
 	i := Value(12345)
 	data, err := i.MarshalText()
 	assert.Nil(t, err)
@@ -146,7 +146,7 @@ func TestMarshalIntText(t *testing.T) {
 	assertJSONEquals(t, data, "", "null text marshal")
 }
 
-func TestIntValueOrZero(t *testing.T) {
+func Test_Int_ValueOrZero(t *testing.T) {
 	valid := Nullable[int]{12345, true}
 	if valid.ValueOrZero() != 12345 {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
@@ -158,7 +158,7 @@ func TestIntValueOrZero(t *testing.T) {
 	}
 }
 
-func TestIntEqual(t *testing.T) {
+func Test_Int_Equal(t *testing.T) {
 	int1 := Nullable[int]{10, false}
 	int2 := Nullable[int]{10, false}
 	assertEqual(t, int1, int2)
@@ -184,7 +184,7 @@ func TestIntEqual(t *testing.T) {
 	assertNotEqual(t, int1, int2)
 }
 
-func TestIntScan(t *testing.T) {
+func Test_Int_Scan(t *testing.T) {
 	var i Nullable[int]
 	err := i.Scan(12345)
 	assert.Nil(t, err)

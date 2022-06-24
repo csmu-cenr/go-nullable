@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestFloatFrom(t *testing.T) {
+func Test_Float_from_value(t *testing.T) {
 	f := Value(1.2345)
 	assertFloat64(t, f, "Data()")
 
@@ -18,8 +18,8 @@ func TestFloatFrom(t *testing.T) {
 	}
 }
 
-func TestFloatFromPointer(t *testing.T) {
-	n := float64(1.2345)
+func Test_Float_from_pointer(t *testing.T) {
+	n := 1.2345
 	iPointer := &n
 	f := ValueFromPointer(iPointer)
 	assertFloat64(t, f, "ValueFromPointer()")
@@ -31,7 +31,7 @@ func TestFloatFromPointer(t *testing.T) {
 	assert.False(t, null32.IsValid)
 }
 
-func TestUnmarshalFloat(t *testing.T) {
+func Test_Json_unmarshal_float64(t *testing.T) {
 	var f Nullable[float64]
 	err := json.Unmarshal(floatJSON, &f)
 	assert.Nil(t, err)
@@ -71,7 +71,7 @@ func TestUnmarshalFloat(t *testing.T) {
 	}
 }
 
-func TestUnmarshalFloat32(t *testing.T) {
+func Test_Json_unmarshal_float32(t *testing.T) {
 	var f Nullable[float32]
 	err := json.Unmarshal(floatJSON, &f)
 	assert.Nil(t, err)
@@ -93,15 +93,11 @@ func TestUnmarshalFloat32(t *testing.T) {
 
 	var blank Nullable[float32]
 	err = json.Unmarshal(floatBlankJSON, &blank)
-	if err == nil {
-		panic("expected error")
-	}
+	assert.NotNil(t, err)
 
 	var badType Nullable[float32]
 	err = json.Unmarshal(boolJSON, &badType)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.NotNil(t, err)
 
 	var invalid Nullable[float32]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -111,7 +107,7 @@ func TestUnmarshalFloat32(t *testing.T) {
 	}
 }
 
-func TestTextUnmarshalFloat(t *testing.T) {
+func Test_Text_unmarshal_float64(t *testing.T) {
 	var f Nullable[float64]
 	err := f.UnmarshalText([]byte("1.2345"))
 	assert.Nil(t, err)
@@ -134,7 +130,7 @@ func TestTextUnmarshalFloat(t *testing.T) {
 	}
 }
 
-func TestMarshalFloat(t *testing.T) {
+func Test_Json_marshal_float(t *testing.T) {
 	f := Value(1.2345)
 	data, err := json.Marshal(f)
 	assert.Nil(t, err)
@@ -147,7 +143,7 @@ func TestMarshalFloat(t *testing.T) {
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
-func TestMarshalFloat32(t *testing.T) {
+func Test_Json_marshal_float32(t *testing.T) {
 	f := Value[float32](1.2345)
 	data, err := json.Marshal(f)
 	assert.Nil(t, err)
@@ -160,7 +156,7 @@ func TestMarshalFloat32(t *testing.T) {
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
-func TestMarshalFloatText(t *testing.T) {
+func Test_Text_marshal_float64(t *testing.T) {
 	f := Value(1.2345)
 	data, err := f.MarshalText()
 	assert.Nil(t, err)
@@ -173,7 +169,7 @@ func TestMarshalFloatText(t *testing.T) {
 	assertJSONEquals(t, data, "", "null text marshal")
 }
 
-func TestFloatInfNaN(t *testing.T) {
+func Test_Float_Inf_and_NaN(t *testing.T) {
 	nan := Nullable[float64]{math.NaN(), true}
 	_, err := nan.MarshalJSON()
 	if err == nil {
@@ -187,7 +183,7 @@ func TestFloatInfNaN(t *testing.T) {
 	}
 }
 
-func TestFloatValueOrZero(t *testing.T) {
+func Test_Float_ValueOrZero(t *testing.T) {
 	valid := Nullable[float64]{1.2345, true}
 	if valid.ValueOrZero() != 1.2345 {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
@@ -199,7 +195,7 @@ func TestFloatValueOrZero(t *testing.T) {
 	}
 }
 
-func TestFloatEqual(t *testing.T) {
+func Test_Float_Equal(t *testing.T) {
 	f1 := Nullable[float64]{10, false}
 	f2 := Nullable[float64]{10, false}
 	assertEqual(t, f1, f2)
@@ -225,7 +221,7 @@ func TestFloatEqual(t *testing.T) {
 	assertNotEqual(t, f1, f2)
 }
 
-func TestFloat64Scan(t *testing.T) {
+func Test_Float64_Scan(t *testing.T) {
 	var f Nullable[float64]
 	err := f.Scan(1.2345)
 	assert.Nil(t, err)
@@ -242,7 +238,7 @@ func TestFloat64Scan(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestFloat32Scan(t *testing.T) {
+func Test_Float32_Scan(t *testing.T) {
 	var f Nullable[float32]
 	err := f.Scan(1.2345)
 	assert.Nil(t, err)

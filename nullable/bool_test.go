@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestBoolFromValue(t *testing.T) {
+func Test_Bool_from_value(t *testing.T) {
 	b := Value(true)
 	assertBool(t, b, "Data()")
 
@@ -17,7 +17,7 @@ func TestBoolFromValue(t *testing.T) {
 	}
 }
 
-func TestBoolFromPointer(t *testing.T) {
+func Test_Bool_from_pointer(t *testing.T) {
 	n := true
 	boolPointer := &n
 	b := ValueFromPointer(boolPointer)
@@ -27,7 +27,7 @@ func TestBoolFromPointer(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func TestUnmarshalBool(t *testing.T) {
+func Test_Json_unmarshal_bool(t *testing.T) {
 	var b Nullable[bool]
 	err := json.Unmarshal(boolJSON, &b)
 	assert.Nil(t, err)
@@ -55,7 +55,7 @@ func TestUnmarshalBool(t *testing.T) {
 	}
 }
 
-func TestTextUnmarshalBool(t *testing.T) {
+func Test_Text_unmarshal_bool(t *testing.T) {
 	var b Nullable[bool]
 	err := b.UnmarshalText([]byte("true"))
 	assert.Nil(t, err)
@@ -84,7 +84,7 @@ func TestTextUnmarshalBool(t *testing.T) {
 	assert.False(t, invalid.IsValid)
 }
 
-func TestMarshalBool(t *testing.T) {
+func Test_Json_marshal_bool(t *testing.T) {
 	b := Value(true)
 	data, err := json.Marshal(b)
 	assert.Nil(t, err)
@@ -102,7 +102,7 @@ func TestMarshalBool(t *testing.T) {
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
-func TestMarshalBoolText(t *testing.T) {
+func Test_Text_marshal_bool(t *testing.T) {
 	b := Value(true)
 	data, err := b.MarshalText()
 	assert.Nil(t, err)
@@ -120,7 +120,7 @@ func TestMarshalBoolText(t *testing.T) {
 	assertJSONEquals(t, data, "", "null text marshal")
 }
 
-func TestBoolValueOrZero(t *testing.T) {
+func Test_Bool_ValueOrZero(t *testing.T) {
 	valid := Value(true)
 	if valid.ValueOrZero() != true {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
@@ -132,7 +132,7 @@ func TestBoolValueOrZero(t *testing.T) {
 	}
 }
 
-func TestBoolEqual(t *testing.T) {
+func Test_Bool_Equal(t *testing.T) {
 	b1 := Nullable[bool]{Data: true, IsValid: false}
 	b2 := Nullable[bool]{Data: true, IsValid: false}
 	assertEqual(t, b1, b2)
@@ -158,7 +158,7 @@ func TestBoolEqual(t *testing.T) {
 	assertNotEqual(t, b1, b2)
 }
 
-func TestBoolScan(t *testing.T) {
+func Test_Bool_Scan(t *testing.T) {
 	var b Nullable[bool]
 	err := b.Scan(true)
 	assert.Nil(t, err)
@@ -170,12 +170,12 @@ func TestBoolScan(t *testing.T) {
 	assert.False(t, null.IsValid)
 }
 
-func assertBool(t *testing.T, b Nullable[bool], from string) {
+func assertBool(t *testing.T, b Nullable[bool], source string) {
 	if b.Data != true {
-		t.Errorf("bad %s bool: %v ≠ %v\n", from, b.Data, true)
+		t.Errorf("bad %s bool: %v ≠ %v\n", source, b.Data, true)
 	}
 	if !b.IsValid {
-		t.Error(from, "is invalid, but should be valid")
+		t.Error(source, "is invalid, but should be valid")
 	}
 }
 

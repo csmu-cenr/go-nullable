@@ -12,7 +12,8 @@ This package mainly exposes the struct `Nullable[T]` which will work in the same
 type in C#. It exposes two properties, the boolean `HasValue` and the actual `Value`.
 
 The struct implements `encoding.TextMarshaler`, `encoding.TextUnmarshaler`, `json.Marshaler` and `json.Unmarshaler`.
-A null objects MarhsalText will return a blank string.
+It also implements `sql.Scanner` and `sql.Valuer` so it supports usage in SQL.
+A null object's MarshalText will return a blank string.
 
 ### Struct signature
 The struct looks just like nullable data types in .NET.

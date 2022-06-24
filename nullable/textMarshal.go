@@ -8,17 +8,17 @@ import (
 )
 
 func (n Nullable[T]) MarshalText() ([]byte, error) {
-	if !n.HasValue {
+	if !n.IsValid {
 		return []byte{}, nil
 	}
 
-	value := any(n.Value)
+	value := any(n.Data)
 	txt, ok := value.(encoding.TextMarshaler)
 	if ok {
 		return txt.MarshalText()
 	}
 
-	switch any(n.Value).(type) {
+	switch any(n.Data).(type) {
 	case float32, float64:
 		return marshalTextFloat(n)
 	case bool:
@@ -26,7 +26,7 @@ func (n Nullable[T]) MarshalText() ([]byte, error) {
 	case int, int8, int16, int32, int64:
 		return marshalTextInt(n)
 	case string:
-		return []byte(any(n.Value).(string)), nil
+		return []byte(any(n.Data).(string)), nil
 	}
 
 	var ref T
@@ -34,59 +34,59 @@ func (n Nullable[T]) MarshalText() ([]byte, error) {
 }
 
 func marshalTextInt[T any](f Nullable[T]) ([]byte, error) {
-	if !f.HasValue {
+	if !f.IsValid {
 		return []byte{}, nil
 	}
 
 	var value int64
-	switch any(f.Value).(type) {
+	switch any(f.Data).(type) {
 	case int:
-		value = int64(any(f.Value).(int))
+		value = int64(any(f.Data).(int))
 	case int8:
-		value = int64(any(f.Value).(int8))
+		value = int64(any(f.Data).(int8))
 	case int16:
-		value = int64(any(f.Value).(int16))
+		value = int64(any(f.Data).(int16))
 	case int32:
-		value = int64(any(f.Value).(int32))
+		value = int64(any(f.Data).(int32))
 	case int64:
-		value = any(f.Value).(int64)
+		value = any(f.Data).(int64)
 	}
 
 	return []byte(strconv.FormatInt(value, 10)), nil
 }
 
 func marshalTextFloat[T any](f Nullable[T]) ([]byte, error) {
-	if !f.HasValue {
+	if !f.IsValid {
 		return []byte{}, nil
 	}
 
 	var value float64
-	switch any(f.Value).(type) {
+	switch any(f.Data).(type) {
 	case float32:
-		value = float64(any(f.Value).(float32))
+		value = float64(any(f.Data).(float32))
 	case float64:
-		value = any(f.Value).(float64)
+		value = any(f.Data).(float64)
 	}
 
 	return []byte(strconv.FormatFloat(value, 'f', -1, 64)), nil
 }
 
 func marshalTextBool(b Nullable[bool]) ([]byte, error) {
-	if !b.HasValue {
+	if !b.IsValid {
 		return []byte{}, nil
 	}
-	if !b.Value {
+	if !b.Data {
 		return []byte("false"), nil
 	}
 	return []byte("true"), nil
 }
 
 func (n *Nullable[T]) UnmarshalText(text []byte) error {
-	value := any(&n.Value)
+	value := any(&n.Data)
 	str := string(text)
 
 	if str == "" || str == "null" {
-		n.HasValue = false
+		n.IsValid = false
 		return nil
 	}
 
@@ -94,14 +94,14 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	if ok {
 		err := txt.UnmarshalText(text)
 		if err != nil {
-			n.HasValue = false
+			n.IsValid = false
 			return err
 		}
-		n.HasValue = true
+		n.IsValid = true
 		return nil
 	}
 
-	switch any(n.Value).(type) {
+	switch any(n.Data).(type) {
 	case bool:
 		return unmarshalTextBool(str, any(n).(*Nullable[bool]))
 	case float32, float64:
@@ -109,8 +109,8 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	case int, int8, int16, int32, int64:
 		return unmarshalTextInt(str, n)
 	case string:
-		n.Value = any(str).(T)
-		n.HasValue = str != ""
+		n.Data = any(str).(T)
+		n.IsValid = str != ""
 		return nil
 	}
 
@@ -121,27 +121,27 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 func unmarshalTextBool(str string, b *Nullable[bool]) error {
 	switch str {
 	case "", "null":
-		b.HasValue = false
+		b.IsValid = false
 		return nil
 	case "true":
-		b.Value = true
+		b.Data = true
 	case "false":
-		b.Value = false
+		b.Data = false
 	default:
 		return errors.New("null: invalid input for UnmarshalText:" + str)
 	}
-	b.HasValue = true
+	b.IsValid = true
 	return nil
 }
 
 func unmarshalTextFloat[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
-		f.HasValue = false
+		f.IsValid = false
 		return nil
 	}
 
 	var size int
-	v := any(f.Value)
+	v := any(f.Data)
 	switch v.(type) {
 	case float32:
 		size = 32
@@ -156,23 +156,23 @@ func unmarshalTextFloat[T any](str string, f *Nullable[T]) error {
 
 	switch v.(type) {
 	case float32:
-		f.Value = any(float32(n)).(T)
+		f.Data = any(float32(n)).(T)
 	case float64:
-		f.Value = any(n).(T)
+		f.Data = any(n).(T)
 	}
 
-	f.HasValue = true
+	f.IsValid = true
 	return err
 }
 
 func unmarshalTextInt[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
-		f.HasValue = false
+		f.IsValid = false
 		return nil
 	}
 
 	var size int
-	v := any(f.Value)
+	v := any(f.Data)
 	switch v.(type) {
 	case int8:
 		size = 8
@@ -191,17 +191,17 @@ func unmarshalTextInt[T any](str string, f *Nullable[T]) error {
 
 	switch v.(type) {
 	case int8:
-		f.Value = any(int8(n)).(T)
+		f.Data = any(int8(n)).(T)
 	case int16:
-		f.Value = any(int16(n)).(T)
+		f.Data = any(int16(n)).(T)
 	case int32:
-		f.Value = any(int32(n)).(T)
+		f.Data = any(int32(n)).(T)
 	case int:
-		f.Value = any(int(n)).(T)
+		f.Data = any(int(n)).(T)
 	case int64:
-		f.Value = any(n).(T)
+		f.Data = any(n).(T)
 	}
 
-	f.HasValue = true
+	f.IsValid = true
 	return err
 }

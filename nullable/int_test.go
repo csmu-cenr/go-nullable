@@ -11,34 +11,34 @@ import (
 
 func TestIntFrom(t *testing.T) {
 	i := Value(12345)
-	assertInt(t, i, "Value()")
+	assertIntValue(t, i, "Data()")
 
 	zero := Value(0)
-	if !zero.HasValue {
-		t.Error("Value(0)", "is invalid, but should be valid")
+	if !zero.IsValid {
+		t.Error("Data(0)", "is invalid, but should be valid")
 	}
 }
 
-func TestIntFromPtr(t *testing.T) {
+func TestIntFromPointer(t *testing.T) {
 	n := 12345
 	intPointer := &n
-	i := ValueFromPtr(intPointer)
-	assertInt(t, i, "ValueFromPtr()")
+	i := ValueFromPointer(intPointer)
+	assertIntValue(t, i, "ValueFromPointer()")
 
-	null := ValueFromPtr[int](nil)
-	assertNull(t, null, "ValueFromPtr(nil)")
+	null := ValueFromPointer[int](nil)
+	assert.False(t, null.IsValid)
 }
 
 func TestUnmarshalInt(t *testing.T) {
 	var i Nullable[int]
 	err := json.Unmarshal(intJSON, &i)
 	assert.Nil(t, err)
-	assertInt(t, i, "int json")
+	assertIntValue(t, i, "int json")
 
 	var si Nullable[int]
 	err = json.Unmarshal(intStringJSON, &si)
 	assert.Nil(t, err)
-	assertInt(t, si, "int string json")
+	assertIntValue(t, si, "int string json")
 
 	var ni Nullable[int]
 	err = json.Unmarshal(nullIntJSON, &ni)
@@ -55,14 +55,14 @@ func TestUnmarshalInt(t *testing.T) {
 	var null Nullable[int]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null json")
+	assert.False(t, null.IsValid)
 
 	var badType Nullable[int]
 	err = json.Unmarshal(boolJSON, &badType)
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assertNull(t, badType, "wrong type json")
+	assert.False(t, badType.IsValid)
 
 	var invalid Nullable[int]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -70,7 +70,7 @@ func TestUnmarshalInt(t *testing.T) {
 	if !errors.As(err, &syntaxError) {
 		t.Errorf("expected wrapped json.SyntaxError, not %T", err)
 	}
-	assertNull(t, invalid, "invalid json")
+	assert.False(t, invalid.IsValid)
 }
 
 func TestUnmarshalNonIntegerNumber(t *testing.T) {
@@ -101,17 +101,17 @@ func TestTextUnmarshalInt(t *testing.T) {
 	var i Nullable[int]
 	err := i.UnmarshalText([]byte("12345"))
 	assert.Nil(t, err)
-	assertInt(t, i, "UnmarshalText() int")
+	assertIntValue(t, i, "UnmarshalText() int")
 
 	var blank Nullable[int]
 	err = blank.UnmarshalText([]byte(""))
 	assert.Nil(t, err)
-	assertNull(t, blank, "UnmarshalText() empty int")
+	assert.False(t, blank.IsValid)
 
 	var null Nullable[int]
 	err = null.UnmarshalText([]byte("null"))
 	assert.Nil(t, err)
-	assertNull(t, null, `UnmarshalText() "null"`)
+	assert.False(t, null.IsValid)
 
 	var invalid Nullable[int]
 	err = invalid.UnmarshalText([]byte("hello world"))
@@ -184,11 +184,24 @@ func TestIntEqual(t *testing.T) {
 	assertNotEqual(t, int1, int2)
 }
 
-func assertInt(t *testing.T, i Nullable[int], from string) {
-	if i.Value != 12345 {
-		t.Errorf("bad %s int: %d ≠ %d\n", from, i.Value, 12345)
+func TestIntScan(t *testing.T) {
+	var i Nullable[int]
+	err := i.Scan(12345)
+	assert.Nil(t, err)
+	assertIntValue(t, i, "scanned valid int")
+
+	var null Nullable[int]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+}
+
+func assertIntValue(t *testing.T, i Nullable[int], source string) {
+	t.Helper()
+	if i.Data != 12345 {
+		t.Errorf("bad %s int: %d ≠ %d\n", source, i.Data, 12345)
 	}
-	if !i.HasValue {
-		t.Error(from, "is invalid, but should be valid")
+	if !i.IsValid {
+		t.Error(source, "should be valid")
 	}
 }

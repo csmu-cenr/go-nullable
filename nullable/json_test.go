@@ -22,7 +22,7 @@ var (
 	invalidJSON = []byte(`:)`)
 
 	boolJSON     = []byte(`true`)
-	nullBoolJSON = []byte(`{"Value":true,"HasValue":true}`)
+	nullBoolJSON = []byte(`{"Data":true,"IsValid":true}`)
 
 	intJSON       = []byte(`12345`)
 	intStringJSON = []byte(`"12345"`)
@@ -35,34 +35,27 @@ var (
 
 	stringJSON      = []byte(`"test"`)
 	blankStringJSON = []byte(`""`)
-	nullStringJSON  = []byte(`{"String":"test","HasValue":true}`)
+	nullStringJSON  = []byte(`{"String":"test","IsValid":true}`)
 )
 
-func assertNull[T any](t *testing.T, f Nullable[T], from string) {
-	t.Helper()
-	if f.HasValue {
-		t.Error(from, "is valid, but should be invalid")
-	}
-}
-
-func assertJSONEquals(t *testing.T, data []byte, cmp string, from string) {
+func assertJSONEquals(t *testing.T, data []byte, cmp string, source string) {
 	t.Helper()
 	if string(data) != cmp {
-		t.Errorf("bad %s data: %s ≠ %s\n", from, data, cmp)
+		t.Errorf("bad %s data: %s ≠ %s\n", source, data, cmp)
 	}
 }
 
 func assertEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if !a.Equal(b) {
-		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Data, a.IsValid, b.Data, b.IsValid)
 	}
 }
 
 func assertNotEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if a.Equal(b) {
-		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return false", a.Data, a.IsValid, b.Data, b.IsValid)
 	}
 }
 
@@ -72,10 +65,10 @@ func Test_Json_unmarshal(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.Nil(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.True(t, project.Notes.HasValue)
-	assert.Equal(t, "Some notes", project.Notes.Value)
-	assert.True(t, project.DepartmentId.HasValue)
-	assert.Equal(t, 12, project.DepartmentId.Value)
+	assert.True(t, project.Notes.IsValid)
+	assert.Equal(t, "Some notes", project.Notes.Data)
+	assert.True(t, project.DepartmentId.IsValid)
+	assert.Equal(t, 12, project.DepartmentId.Data)
 }
 
 func Test_Json_unmarshal_with_null(t *testing.T) {
@@ -84,8 +77,8 @@ func Test_Json_unmarshal_with_null(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.Nil(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.False(t, project.Notes.HasValue)
-	assert.False(t, project.DepartmentId.HasValue)
+	assert.False(t, project.Notes.IsValid)
+	assert.False(t, project.DepartmentId.IsValid)
 }
 
 func Test_Json_unmarshal_with_missing_values(t *testing.T) {
@@ -94,6 +87,6 @@ func Test_Json_unmarshal_with_missing_values(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.Nil(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.False(t, project.Notes.HasValue)
-	assert.False(t, project.DepartmentId.HasValue)
+	assert.False(t, project.Notes.IsValid)
+	assert.False(t, project.DepartmentId.IsValid)
 }

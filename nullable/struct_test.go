@@ -31,8 +31,8 @@ func Test_Struct_from_JSON(t *testing.T) {
 	err := json.Unmarshal(jsonData, &tsk)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, tsk.TaskId)
-	assert.True(t, tsk.ProjectId.HasValue)
-	assert.Equal(t, 5, tsk.ProjectId.Value)
+	assert.True(t, tsk.ProjectId.IsValid)
+	assert.Equal(t, 5, tsk.ProjectId.Data)
 	assert.Equal(t, "kjell", tsk.Subject)
-	assert.False(t, tsk.CategoryId.HasValue)
+	assert.False(t, tsk.CategoryId.IsValid)
 }

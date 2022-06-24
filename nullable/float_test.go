@@ -10,25 +10,25 @@ import (
 
 func TestFloatFrom(t *testing.T) {
 	f := Value(1.2345)
-	assertFloat64(t, f, "Value()")
+	assertFloat64(t, f, "Data()")
 
 	zero := Value(0)
-	if !zero.HasValue {
-		t.Error("Value(0)", "is invalid, but should be valid")
+	if !zero.IsValid {
+		t.Error("Data(0)", "is invalid, but should be valid")
 	}
 }
 
-func TestFloatFromPtr(t *testing.T) {
+func TestFloatFromPointer(t *testing.T) {
 	n := float64(1.2345)
-	iptr := &n
-	f := ValueFromPtr(iptr)
-	assertFloat64(t, f, "ValueFromPtr()")
+	iPointer := &n
+	f := ValueFromPointer(iPointer)
+	assertFloat64(t, f, "ValueFromPointer()")
 
-	null := ValueFromPtr[float64](nil)
-	assertNull(t, null, "ValueFromPtr(nil)")
+	null := ValueFromPointer[float64](nil)
+	assert.False(t, null.IsValid)
 
-	null32 := ValueFromPtr[float32](nil)
-	assertNull(t, null32, "ValueFromPtr(nil)")
+	null32 := ValueFromPointer[float32](nil)
+	assert.False(t, null32.IsValid)
 }
 
 func TestUnmarshalFloat(t *testing.T) {
@@ -49,7 +49,7 @@ func TestUnmarshalFloat(t *testing.T) {
 	var null Nullable[float64]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null json")
+	assert.False(t, null.IsValid)
 
 	var blank Nullable[float64]
 	err = json.Unmarshal(floatBlankJSON, &blank)
@@ -89,7 +89,7 @@ func TestUnmarshalFloat32(t *testing.T) {
 	var null Nullable[float32]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null json")
+	assert.False(t, null.IsValid)
 
 	var blank Nullable[float32]
 	err = json.Unmarshal(floatBlankJSON, &blank)
@@ -120,12 +120,12 @@ func TestTextUnmarshalFloat(t *testing.T) {
 	var blank Nullable[float64]
 	err = blank.UnmarshalText([]byte(""))
 	assert.Nil(t, err)
-	assertNull(t, blank, "UnmarshalText() empty float")
+	assert.False(t, blank.IsValid)
 
 	var null Nullable[float64]
 	err = null.UnmarshalText([]byte("null"))
 	assert.Nil(t, err)
-	assertNull(t, null, `UnmarshalText() "null"`)
+	assert.False(t, null.IsValid)
 
 	var invalid Nullable[float64]
 	err = invalid.UnmarshalText([]byte("hello world"))
@@ -225,20 +225,54 @@ func TestFloatEqual(t *testing.T) {
 	assertNotEqual(t, f1, f2)
 }
 
+func TestFloat64Scan(t *testing.T) {
+	var f Nullable[float64]
+	err := f.Scan(1.2345)
+	assert.Nil(t, err)
+	assertFloat64(t, f, "scanned float")
+
+	var sf Nullable[float64]
+	err = sf.Scan("1.2345")
+	assert.Nil(t, err)
+	assertFloat64(t, sf, "scanned string float")
+
+	var null Nullable[float64]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+}
+
+func TestFloat32Scan(t *testing.T) {
+	var f Nullable[float32]
+	err := f.Scan(1.2345)
+	assert.Nil(t, err)
+	assertFloat32(t, f, "scanned float")
+
+	var sf Nullable[float32]
+	err = sf.Scan("1.2345")
+	assert.Nil(t, err)
+	assertFloat32(t, sf, "scanned string float")
+
+	var null Nullable[float32]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+}
+
 func assertFloat64(t *testing.T, f Nullable[float64], from string) {
-	if f.Value != 1.2345 {
-		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Value, 1.2345)
+	if f.Data != 1.2345 {
+		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Data, 1.2345)
 	}
-	if !f.HasValue {
+	if !f.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }
 
 func assertFloat32(t *testing.T, f Nullable[float32], from string) {
-	if f.Value != 1.2345 {
-		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Value, 1.2345)
+	if f.Data != 1.2345 {
+		t.Errorf("bad %s float: %f ≠ %f\n", from, f.Data, 1.2345)
 	}
-	if !f.HasValue {
+	if !f.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }

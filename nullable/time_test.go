@@ -17,8 +17,8 @@ var (
 	timeValue1, _ = time.Parse(time.RFC3339, timeString1)
 	timeValue2, _ = time.Parse(time.RFC3339, timeString2)
 	timeValue3, _ = time.Parse(time.RFC3339, timeString3)
-	timeObject    = []byte(`{"Time":"2012-12-21T21:21:21Z","HasValue":true}`)
-	nullObject    = []byte(`{"Time":"0001-01-01T00:00:00Z","HasValue":false}`)
+	timeObject    = []byte(`{"Time":"2012-12-21T21:21:21Z","IsValid":true}`)
+	nullObject    = []byte(`{"Time":"0001-01-01T00:00:00Z","IsValid":false}`)
 	badObject     = []byte(`{"hello": "world"}`)
 )
 
@@ -31,7 +31,7 @@ func TestUnmarshalTimeJSON(t *testing.T) {
 	var null Nullable[time.Time]
 	err = json.Unmarshal(nullTimeJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null time json")
+	assert.False(t, null.IsValid)
 
 	var fromObject Nullable[time.Time]
 	err = json.Unmarshal(timeObject, &fromObject)
@@ -51,21 +51,21 @@ func TestUnmarshalTimeJSON(t *testing.T) {
 	if !errors.As(err, &syntaxError) {
 		t.Errorf("expected wrapped json.SyntaxError, not %T", err)
 	}
-	assertNull(t, invalid, "invalid from object json")
+	assert.False(t, invalid.IsValid)
 
 	var bad Nullable[time.Time]
 	err = json.Unmarshal(badObject, &bad)
 	if err == nil {
 		t.Errorf("expected error: bad object")
 	}
-	assertNull(t, bad, "bad from object json")
+	assert.False(t, bad.IsValid)
 
 	var wrongType Nullable[time.Time]
 	err = json.Unmarshal(intJSON, &wrongType)
 	if err == nil {
 		t.Errorf("expected error: wrong type JSON")
 	}
-	assertNull(t, wrongType, "wrong type object json")
+	assert.False(t, wrongType.IsValid)
 }
 
 func TestUnmarshalTimeText(t *testing.T) {
@@ -82,7 +82,7 @@ func TestUnmarshalTimeText(t *testing.T) {
 	var null Nullable[time.Time]
 	err = null.UnmarshalText(nullJSON)
 	assert.Nil(t, err)
-	assertNull(t, null, "unmarshal null text")
+	assert.False(t, null.IsValid)
 	txt, err = null.MarshalText()
 	assert.Nil(t, err)
 	assertJSONEquals(t, txt, "", "marshal null text")
@@ -92,7 +92,7 @@ func TestUnmarshalTimeText(t *testing.T) {
 	if err == nil {
 		t.Error("expected error")
 	}
-	assertNull(t, invalid, "bad string")
+	assert.False(t, invalid.IsValid)
 }
 
 func TestMarshalTime(t *testing.T) {
@@ -101,7 +101,7 @@ func TestMarshalTime(t *testing.T) {
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, string(timeJSON), "non-empty json marshal")
 
-	ti.HasValue = false
+	ti.IsValid = false
 	data, err = json.Marshal(ti)
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, string(nullJSON), "null json marshal")
@@ -109,25 +109,25 @@ func TestMarshalTime(t *testing.T) {
 
 func TestTimeFrom(t *testing.T) {
 	ti := Value(timeValue1)
-	assertTime(t, ti, "Value() time.Time")
+	assertTime(t, ti, "Data() time.Time")
 }
 
-func TestTimeFromPtr(t *testing.T) {
-	ti := ValueFromPtr[time.Time](&timeValue1)
-	assertTime(t, ti, "ValueFromPtr[time.Time() time")
+func TestTimeFromPointer(t *testing.T) {
+	ti := ValueFromPointer[time.Time](&timeValue1)
+	assertTime(t, ti, "ValueFromPointer[time.Time() time")
 
-	null := ValueFromPtr[time.Time](nil)
-	assertNull(t, null, "ValueFromPtr[time.Time(nil)")
+	null := ValueFromPointer[time.Time](nil)
+	assert.False(t, null.IsValid)
 }
 
 func TestTimeValueOrZero(t *testing.T) {
 	valid := Value(timeValue1)
-	if valid.ValueOrZero() != valid.Value || valid.ValueOrZero().IsZero() {
+	if valid.ValueOrZero() != valid.Data || valid.ValueOrZero().IsZero() {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
 	invalid := valid
-	invalid.HasValue = false
+	invalid.IsValid = false
 	if !invalid.ValueOrZero().IsZero() {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
@@ -193,11 +193,35 @@ func TestTimeExactEqual(t *testing.T) {
 	assertTimeExactEqualIsFalse(t, t1, t2)
 }
 
-func assertTime(t *testing.T, ti Nullable[time.Time], from string) {
-	if ti.Value != timeValue1 {
-		t.Errorf("bad %v time: %v ≠ %v\n", from, ti.Value, timeValue1)
+func TestTimeScanValue(t *testing.T) {
+	var ti Nullable[time.Time]
+	err := ti.Scan(timeValue1)
+	assert.Nil(t, err)
+	assertTime(t, ti, "scanned time")
+	if v, err := ti.Value(); v != timeValue1 || err != nil {
+		t.Error("bad value or err:", v, err)
 	}
-	if !ti.HasValue {
+
+	var null Nullable[time.Time]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+	if v, err := null.Value(); v != nil || err != nil {
+		t.Error("bad value or err:", v, err)
+	}
+
+	var wrong Nullable[time.Time]
+	err = wrong.Scan(int64(42))
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func assertTime(t *testing.T, ti Nullable[time.Time], from string) {
+	if ti.Data != timeValue1 {
+		t.Errorf("bad %v time: %v ≠ %v\n", from, ti.Data, timeValue1)
+	}
+	if !ti.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }
@@ -205,13 +229,13 @@ func assertTime(t *testing.T, ti Nullable[time.Time], from string) {
 func assertTimeExactEqualIsTrue(t *testing.T, a, b Nullable[time.Time]) {
 	t.Helper()
 	if !a.ExactEqual(b) {
-		t.Errorf("ExactEqual() of Time{%v, HasValue:%t} and Time{%v, HasValue:%t} should return true", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("ExactEqual() of Time{%v, IsValid:%t} and Time{%v, IsValid:%t} should return true", a.Data, a.IsValid, b.Data, b.IsValid)
 	}
 }
 
 func assertTimeExactEqualIsFalse(t *testing.T, a, b Nullable[time.Time]) {
 	t.Helper()
 	if a.ExactEqual(b) {
-		t.Errorf("ExactEqual() of Time{%v, HasValue:%t} and Time{%v, HasValue:%t} should return false", a.Value, a.HasValue, b.Value, b.HasValue)
+		t.Errorf("ExactEqual() of Time{%v, IsValid:%t} and Time{%v, IsValid:%t} should return false", a.Data, a.IsValid, b.Data, b.IsValid)
 	}
 }

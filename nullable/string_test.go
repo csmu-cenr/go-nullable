@@ -13,22 +13,22 @@ type stringInStruct struct {
 
 func TestStringFrom(t *testing.T) {
 	str := Value("test")
-	assertStr(t, str, "Value() string")
+	assertStr(t, str, "Data() string")
 
 	zero := Value("")
-	if !zero.HasValue {
-		t.Error("Value(0)", "is invalid, but should be valid")
+	if !zero.IsValid {
+		t.Error("Data(0)", "is invalid, but should be valid")
 	}
 }
 
-func TestStringFromPtr(t *testing.T) {
+func TestStringFromPointer(t *testing.T) {
 	s := "test"
-	sptr := &s
-	str := ValueFromPtr(sptr)
-	assertStr(t, str, "ValueFromPtr() string")
+	sPointer := &s
+	str := ValueFromPointer(sPointer)
+	assertStr(t, str, "ValueFromPointer() string")
 
-	null := ValueFromPtr[string](nil)
-	assertNull(t, null, "ValueFromPtr(nil)")
+	null := ValueFromPointer[string](nil)
+	assert.False(t, null.IsValid)
 }
 
 func TestUnmarshalString(t *testing.T) {
@@ -46,21 +46,21 @@ func TestUnmarshalString(t *testing.T) {
 	var blank Nullable[string]
 	err = json.Unmarshal(blankStringJSON, &blank)
 	assert.Nil(t, err)
-	if !blank.HasValue {
+	if !blank.IsValid {
 		t.Error("blank string should be valid")
 	}
 
 	var null Nullable[string]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null json")
+	assert.False(t, null.IsValid)
 
 	var badType Nullable[string]
 	err = json.Unmarshal(boolJSON, &badType)
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assertNull(t, badType, "wrong type json")
+	assert.False(t, badType.IsValid)
 
 	var invalid Nullable[string]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -68,7 +68,7 @@ func TestUnmarshalString(t *testing.T) {
 	if !errors.As(err, &syntaxError) {
 		t.Errorf("expected wrapped json.SyntaxError, not %T", err)
 	}
-	assertNull(t, invalid, "invalid json")
+	assert.False(t, invalid.IsValid)
 }
 
 func TestTextUnmarshalString(t *testing.T) {
@@ -80,7 +80,7 @@ func TestTextUnmarshalString(t *testing.T) {
 	var null Nullable[string]
 	err = null.UnmarshalText([]byte(""))
 	assert.Nil(t, err)
-	assertNull(t, null, "UnmarshalText() empty string")
+	assert.False(t, null.IsValid)
 }
 
 func TestMarshalString(t *testing.T) {
@@ -101,7 +101,7 @@ func TestMarshalString(t *testing.T) {
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, "", "string marshal text")
 
-	null := ValueFromPtr[string](nil)
+	null := ValueFromPointer[string](nil)
 	data, err = json.Marshal(null)
 	assert.Nil(t, err)
 	assertJSONEquals(t, data, `null`, "null json marshal")
@@ -160,11 +160,23 @@ func TestStringEqual(t *testing.T) {
 	assertNotEqual(t, str1, str2)
 }
 
+func TestStringScan(t *testing.T) {
+	var str Nullable[string]
+	err := str.Scan("test")
+	assert.Nil(t, err)
+	assertStr(t, str, "scanned string")
+
+	var null Nullable[string]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+}
+
 func assertStr(t *testing.T, s Nullable[string], from string) {
-	if s.Value != "test" {
-		t.Errorf("bad %s string: %s ≠ %s\n", from, s.Value, "test")
+	if s.Data != "test" {
+		t.Errorf("bad %s string: %s ≠ %s\n", from, s.Data, "test")
 	}
-	if !s.HasValue {
+	if !s.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }

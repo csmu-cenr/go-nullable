@@ -7,24 +7,24 @@ import (
 	"testing"
 )
 
-func TestBoolFrom(t *testing.T) {
+func TestBoolFromValue(t *testing.T) {
 	b := Value(true)
-	assertBool(t, b, "Value()")
+	assertBool(t, b, "Data()")
 
 	zero := Value(false)
-	if !zero.HasValue {
-		t.Error("Value(false)", "is invalid, but should be valid")
+	if !zero.IsValid {
+		t.Error("Data(false)", "is invalid, but should be valid")
 	}
 }
 
-func TestBoolFromPtr(t *testing.T) {
+func TestBoolFromPointer(t *testing.T) {
 	n := true
 	boolPointer := &n
-	b := ValueFromPtr(boolPointer)
-	assertBool(t, b, "ValueFromPtr()")
+	b := ValueFromPointer(boolPointer)
+	assertBool(t, b, "ValueFromPointer()")
 
-	null := ValueFromPtr[bool](nil)
-	assertNull(t, null, "ValueFromPtr(nil)")
+	null := ValueFromPointer[bool](nil)
+	assert.False(t, null.IsValid)
 }
 
 func TestUnmarshalBool(t *testing.T) {
@@ -40,14 +40,12 @@ func TestUnmarshalBool(t *testing.T) {
 	var null Nullable[bool]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.Nil(t, err)
-	assertNull(t, null, "null json")
+	assert.False(t, null.IsValid)
 
 	var badType Nullable[bool]
 	err = json.Unmarshal(intJSON, &badType)
-	if err == nil {
-		panic("err should not be nil")
-	}
-	assertNull(t, badType, "wrong type json")
+	assert.NotNil(t, err)
+	assert.False(t, badType.IsValid)
 
 	var invalid Nullable[bool]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -63,27 +61,27 @@ func TestTextUnmarshalBool(t *testing.T) {
 	assert.Nil(t, err)
 	assertBool(t, b, "UnmarshalText() bool")
 
-	var zero Nullable[bool]
-	err = zero.UnmarshalText([]byte("false"))
+	var falseBool Nullable[bool]
+	err = falseBool.UnmarshalText([]byte("false"))
 	assert.Nil(t, err)
-	assertFalseBool(t, zero, "UnmarshalText() false")
+	assertFalseBool(t, falseBool, "UnmarshalText() false")
 
-	var blank Nullable[bool]
-	err = blank.UnmarshalText([]byte(""))
+	var fromBlankString Nullable[bool]
+	err = fromBlankString.UnmarshalText([]byte(""))
 	assert.Nil(t, err)
-	assertNull(t, blank, "UnmarshalText() empty bool")
+	assert.False(t, fromBlankString.IsValid)
 
-	var null Nullable[bool]
-	err = null.UnmarshalText([]byte("null"))
+	var fromNullString Nullable[bool]
+	err = fromNullString.UnmarshalText([]byte("null"))
 	assert.Nil(t, err)
-	assertNull(t, null, `UnmarshalText() "null"`)
+	assert.False(t, fromNullString.IsValid)
 
 	var invalid Nullable[bool]
 	err = invalid.UnmarshalText([]byte(":D"))
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assertNull(t, invalid, "invalid json")
+	assert.False(t, invalid.IsValid)
 }
 
 func TestMarshalBool(t *testing.T) {
@@ -128,52 +126,64 @@ func TestBoolValueOrZero(t *testing.T) {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[bool]{Value: true, HasValue: false}
+	invalid := Nullable[bool]{Data: true, IsValid: false}
 	if invalid.ValueOrZero() != false {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func TestBoolEqual(t *testing.T) {
-	b1 := Nullable[bool]{Value: true, HasValue: false}
-	b2 := Nullable[bool]{Value: true, HasValue: false}
+	b1 := Nullable[bool]{Data: true, IsValid: false}
+	b2 := Nullable[bool]{Data: true, IsValid: false}
 	assertEqual(t, b1, b2)
 
-	b1 = Nullable[bool]{Value: true, HasValue: false}
-	b2 = Nullable[bool]{Value: false, HasValue: false}
+	b1 = Nullable[bool]{Data: true, IsValid: false}
+	b2 = Nullable[bool]{Data: false, IsValid: false}
 	assertEqual(t, b1, b2)
 
-	b1 = Nullable[bool]{Value: true, HasValue: true}
-	b2 = Nullable[bool]{Value: true, HasValue: true}
+	b1 = Nullable[bool]{Data: true, IsValid: true}
+	b2 = Nullable[bool]{Data: true, IsValid: true}
 	assertEqual(t, b1, b2)
 
-	b1 = Nullable[bool]{Value: true, HasValue: true}
-	b2 = Nullable[bool]{Value: true, HasValue: false}
+	b1 = Nullable[bool]{Data: true, IsValid: true}
+	b2 = Nullable[bool]{Data: true, IsValid: false}
 	assertNotEqual(t, b1, b2)
 
-	b1 = Nullable[bool]{Value: true, HasValue: false}
-	b2 = Nullable[bool]{Value: true, HasValue: true}
+	b1 = Nullable[bool]{Data: true, IsValid: false}
+	b2 = Nullable[bool]{Data: true, IsValid: true}
 	assertNotEqual(t, b1, b2)
 
-	b1 = Nullable[bool]{Value: true, HasValue: true}
-	b2 = Nullable[bool]{Value: false, HasValue: true}
+	b1 = Nullable[bool]{Data: true, IsValid: true}
+	b2 = Nullable[bool]{Data: false, IsValid: true}
 	assertNotEqual(t, b1, b2)
 }
 
+func TestBoolScan(t *testing.T) {
+	var b Nullable[bool]
+	err := b.Scan(true)
+	assert.Nil(t, err)
+	assertBool(t, b, "scanned bool")
+
+	var null Nullable[bool]
+	err = null.Scan(nil)
+	assert.Nil(t, err)
+	assert.False(t, null.IsValid)
+}
+
 func assertBool(t *testing.T, b Nullable[bool], from string) {
-	if b.Value != true {
-		t.Errorf("bad %s bool: %v ≠ %v\n", from, b.Value, true)
+	if b.Data != true {
+		t.Errorf("bad %s bool: %v ≠ %v\n", from, b.Data, true)
 	}
-	if !b.HasValue {
+	if !b.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }
 
 func assertFalseBool(t *testing.T, b Nullable[bool], from string) {
-	if b.Value != false {
-		t.Errorf("bad %s bool: %v ≠ %v\n", from, b.Value, false)
+	if b.Data != false {
+		t.Errorf("bad %s bool: %v ≠ %v\n", from, b.Data, false)
 	}
-	if !b.HasValue {
+	if !b.IsValid {
 		t.Error(from, "is invalid, but should be valid")
 	}
 }

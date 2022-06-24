@@ -10,25 +10,25 @@ import (
 var nullBytes = []byte("null")
 
 func (n Nullable[T]) MarshalJSON() ([]byte, error) {
-	if !n.HasValue {
+	if !n.IsValid {
 		return nullBytes, nil
 	}
-	return json.Marshal(n.Value)
+	return json.Marshal(n.Data)
 }
 
 func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
 	if bytes.Equal(data, nullBytes) {
-		n.HasValue = false
+		n.IsValid = false
 		return nil
 	}
 
-	err := json.Unmarshal(data, &n.Value)
+	err := json.Unmarshal(data, &n.Data)
 	if err == nil {
-		n.HasValue = true
+		n.IsValid = true
 		return nil
 	}
 
-	switch any(n.Value).(type) {
+	switch any(n.Data).(type) {
 	case float32, float64:
 		return unmarshalFloatStringJson(n, data)
 	case int, int8, int16, int32, int64:
@@ -45,7 +45,7 @@ func unmarshalFloatStringJson[T any](f *Nullable[T], data []byte) error {
 	}
 
 	var size int
-	v := any(f.Value)
+	v := any(f.Data)
 	switch v.(type) {
 	case float32:
 		size = 32
@@ -60,12 +60,12 @@ func unmarshalFloatStringJson[T any](f *Nullable[T], data []byte) error {
 
 	switch v.(type) {
 	case float32:
-		f.Value = any(float32(n)).(T)
+		f.Data = any(float32(n)).(T)
 	case float64:
-		f.Value = any(n).(T)
+		f.Data = any(n).(T)
 	}
 
-	f.HasValue = true
+	f.IsValid = true
 	return nil
 }
 
@@ -76,7 +76,7 @@ func unmarshalIntStringJson[T any](f *Nullable[T], data []byte) error {
 	}
 
 	var size int
-	v := any(f.Value)
+	v := any(f.Data)
 	switch v.(type) {
 	case int8:
 		size = 8
@@ -95,17 +95,17 @@ func unmarshalIntStringJson[T any](f *Nullable[T], data []byte) error {
 
 	switch v.(type) {
 	case int8:
-		f.Value = any(int8(n)).(T)
+		f.Data = any(int8(n)).(T)
 	case int16:
-		f.Value = any(int16(n)).(T)
+		f.Data = any(int16(n)).(T)
 	case int32:
-		f.Value = any(int32(n)).(T)
+		f.Data = any(int32(n)).(T)
 	case int:
-		f.Value = any(int(n)).(T)
+		f.Data = any(int(n)).(T)
 	case int64:
-		f.Value = any(n).(T)
+		f.Data = any(n).(T)
 	}
 
-	f.HasValue = true
+	f.IsValid = true
 	return nil
 }

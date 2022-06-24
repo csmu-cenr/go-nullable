@@ -9,7 +9,7 @@ go-nullable is a library that desires to enable null-able support for struct and
 It is inspired by the way .NET solves it, and by https://github.com/guregu/null.
 
 This package mainly exposes the struct `Nullable[T]` which will work in the same manner as the nullable
-type in C#. It exposes two properties, the boolean `HasValue` and the actual `Value`.
+type in C#. It exposes two properties, the boolean `IsValid` and the actual `Data`.
 
 The struct implements `encoding.TextMarshaler`, `encoding.TextUnmarshaler`, `json.Marshaler` and `json.Unmarshaler`.
 It also implements `sql.Scanner` and `sql.Valuer` so it supports usage in SQL.
@@ -28,12 +28,12 @@ import (
 
 func main() {
 	n := nullable.Null[int16]()
-	n.HasValue // is FALSE
-	n.Value    // is just default value (0)
+	n.IsValid // is FALSE
+	n.Data    // is just default value (0)
 
 	m := nullable.Value(10)
-	m.HasValue // is TRUE
-	m.Value    // is 10
+	m.IsValid // is TRUE
+	m.Data    // is 10
 
 	str := fmt.Sprintf("%s", m) // will be "10"
 }

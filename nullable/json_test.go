@@ -90,3 +90,13 @@ func Test_Json_unmarshal_with_missing_values(t *testing.T) {
 	assert.False(t, project.Notes.IsValid)
 	assert.False(t, project.DepartmentId.IsValid)
 }
+
+func Test_GoString(t *testing.T) {
+	assert.Equal(t, `nullable.Nullable[bool]{Data:true,IsValid:true}`, Value(true).GoString())
+	assert.Equal(t, `nullable.Nullable[bool]{Data:false,IsValid:false}`, Null[bool]().GoString())
+	assert.Equal(t, `nullable.Nullable[float64]{Data:5.6,IsValid:true}`, Value(5.6).GoString())
+	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,IsValid:true}`, Value(float32(5.6)).GoString())
+	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,IsValid:true}`, Nullable[float32]{Data: 5.6, IsValid: true}.GoString())
+	assert.Equal(t, `nullable.Nullable[int]{Data:5,IsValid:true}`, Value(5).GoString())
+	assert.Equal(t, `nullable.Nullable[int8]{Data:5,IsValid:true}`, Value(int8(5)).GoString())
+}

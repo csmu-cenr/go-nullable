@@ -61,3 +61,8 @@ func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 func (n Nullable[T]) String() string {
 	return fmt.Sprintf("%s", any(n.Data))
 }
+
+func (n Nullable[T]) GoString() string {
+	var ref T
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,IsValid:%#v}", ref, n.Data, n.IsValid)
+}

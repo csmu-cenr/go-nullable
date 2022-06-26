@@ -7,22 +7,22 @@ import (
 
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
-	Data    T
-	IsValid bool
+	Data  T
+	Valid bool
 }
 
 // Value Create a Nullable from a value
 func Value[T any](value T) Nullable[T] {
 	if any(value) == nil {
-		return Nullable[T]{IsValid: false}
+		return Nullable[T]{Valid: false}
 	}
-	return Nullable[T]{Data: value, IsValid: true}
+	return Nullable[T]{Data: value, Valid: true}
 }
 
 // ValueFromPointer Create a Nullable from a pointer
 func ValueFromPointer[T any](value *T) Nullable[T] {
 	if value == nil {
-		return Nullable[T]{IsValid: false}
+		return Nullable[T]{Valid: false}
 	}
 	return Value(*value)
 }
@@ -34,11 +34,19 @@ func Null[T any]() Nullable[T] {
 
 // ValueOrZero Get Value, or default zero value if it is NULL
 func (n Nullable[T]) ValueOrZero() T {
-	if !n.IsValid {
+	if !n.Valid {
 		var ref T
 		return ref
 	}
 	return n.Data
+}
+
+func (n Nullable[T]) IsZero() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
 }
 
 // Equal Check if this Nullable is equal to another Nullable
@@ -47,14 +55,14 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 	case time.Time:
 		nValue := any(n.Data).(time.Time)
 		otherValue := any(other.Data).(time.Time)
-		return n.IsValid == other.IsValid && (!n.IsValid || nValue.Equal(otherValue))
+		return n.Valid == other.Valid && (!n.Valid || nValue.Equal(otherValue))
 	}
 	return n.ExactEqual(other)
 }
 
 // ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
 func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
-	return n.IsValid == other.IsValid && (!n.IsValid || any(n.Data) == any(other.Data))
+	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
 }
 
 // String Convert value to string
@@ -64,5 +72,5 @@ func (n Nullable[T]) String() string {
 
 func (n Nullable[T]) GoString() string {
 	var ref T
-	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,IsValid:%#v}", ref, n.Data, n.IsValid)
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v}", ref, n.Data, n.Valid)
 }

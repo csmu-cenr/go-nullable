@@ -10,21 +10,21 @@ import (
 var nullBytes = []byte("null")
 
 func (n Nullable[T]) MarshalJSON() ([]byte, error) {
-	if !n.IsValid {
-		return nullBytes, nil
+	if !n.Valid {
+		return json.Marshal(nil)
 	}
 	return json.Marshal(n.Data)
 }
 
 func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
 	if bytes.Equal(data, nullBytes) {
-		n.IsValid = false
+		n.Valid = false
 		return nil
 	}
 
 	err := json.Unmarshal(data, &n.Data)
 	if err == nil {
-		n.IsValid = true
+		n.Valid = true
 		return nil
 	}
 
@@ -65,7 +65,7 @@ func unmarshalFloatStringJson[T any](f *Nullable[T], data []byte) error {
 		f.Data = any(n).(T)
 	}
 
-	f.IsValid = true
+	f.Valid = true
 	return nil
 }
 
@@ -106,6 +106,6 @@ func unmarshalIntStringJson[T any](f *Nullable[T], data []byte) error {
 		f.Data = any(n).(T)
 	}
 
-	f.IsValid = true
+	f.Valid = true
 	return nil
 }

@@ -22,7 +22,7 @@ var (
 	invalidJSON = []byte(`:)`)
 
 	boolJSON     = []byte(`true`)
-	nullBoolJSON = []byte(`{"Data":true,"IsValid":true}`)
+	nullBoolJSON = []byte(`{"Data":true,"Valid":true}`)
 
 	intJSON       = []byte(`12345`)
 	intStringJSON = []byte(`"12345"`)
@@ -35,27 +35,33 @@ var (
 
 	stringJSON      = []byte(`"test"`)
 	blankStringJSON = []byte(`""`)
-	nullStringJSON  = []byte(`{"String":"test","IsValid":true}`)
+	nullStringJSON  = []byte(`{"String":"test","Valid":true}`)
 )
 
 func assertJSONEquals(t *testing.T, data []byte, cmp string, source string) {
 	t.Helper()
-	if string(data) != cmp {
-		t.Errorf("bad %s data: %s ≠ %s\n", source, data, cmp)
-	}
+
+	var dataDecoded map[string]interface{}
+	var cmpDecoded map[string]interface{}
+
+	err := json.Unmarshal(data, &dataDecoded)
+	assert.NoError(t, err)
+	err = json.Unmarshal([]byte(cmp), &cmpDecoded)
+	assert.NoError(t, err)
+	assert.Equal(t, cmpDecoded, dataDecoded, "bad %s data: %s ≠ %s\n", source, data, cmp)
 }
 
 func assertEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if !a.Equal(b) {
-		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Data, a.IsValid, b.Data, b.IsValid)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Data, a.Valid, b.Data, b.Valid)
 	}
 }
 
 func assertNotEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	if a.Equal(b) {
-		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return false", a.Data, a.IsValid, b.Data, b.IsValid)
+		t.Errorf("Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return false", a.Data, a.Valid, b.Data, b.Valid)
 	}
 }
 
@@ -65,9 +71,9 @@ func Test_Json_unmarshal(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.True(t, project.Notes.IsValid)
+	assert.True(t, project.Notes.Valid)
 	assert.Equal(t, "Some notes", project.Notes.Data)
-	assert.True(t, project.DepartmentId.IsValid)
+	assert.True(t, project.DepartmentId.Valid)
 	assert.Equal(t, 12, project.DepartmentId.Data)
 }
 
@@ -77,8 +83,8 @@ func Test_Json_unmarshal_with_null(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.False(t, project.Notes.IsValid)
-	assert.False(t, project.DepartmentId.IsValid)
+	assert.False(t, project.Notes.Valid)
+	assert.False(t, project.DepartmentId.Valid)
 }
 
 func Test_Json_unmarshal_with_missing_values(t *testing.T) {
@@ -87,16 +93,16 @@ func Test_Json_unmarshal_with_missing_values(t *testing.T) {
 	err := json.Unmarshal([]byte(jsonData), &project)
 	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
-	assert.False(t, project.Notes.IsValid)
-	assert.False(t, project.DepartmentId.IsValid)
+	assert.False(t, project.Notes.Valid)
+	assert.False(t, project.DepartmentId.Valid)
 }
 
 func Test_GoString(t *testing.T) {
-	assert.Equal(t, `nullable.Nullable[bool]{Data:true,IsValid:true}`, Value(true).GoString())
-	assert.Equal(t, `nullable.Nullable[bool]{Data:false,IsValid:false}`, Null[bool]().GoString())
-	assert.Equal(t, `nullable.Nullable[float64]{Data:5.6,IsValid:true}`, Value(5.6).GoString())
-	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,IsValid:true}`, Value(float32(5.6)).GoString())
-	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,IsValid:true}`, Nullable[float32]{Data: 5.6, IsValid: true}.GoString())
-	assert.Equal(t, `nullable.Nullable[int]{Data:5,IsValid:true}`, Value(5).GoString())
-	assert.Equal(t, `nullable.Nullable[int8]{Data:5,IsValid:true}`, Value(int8(5)).GoString())
+	assert.Equal(t, `nullable.Nullable[bool]{Data:true,Valid:true}`, Value(true).GoString())
+	assert.Equal(t, `nullable.Nullable[bool]{Data:false,Valid:false}`, Null[bool]().GoString())
+	assert.Equal(t, `nullable.Nullable[float64]{Data:5.6,Valid:true}`, Value(5.6).GoString())
+	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,Valid:true}`, Value(float32(5.6)).GoString())
+	assert.Equal(t, `nullable.Nullable[float32]{Data:5.6,Valid:true}`, Nullable[float32]{Data: 5.6, Valid: true}.GoString())
+	assert.Equal(t, `nullable.Nullable[int]{Data:5,Valid:true}`, Value(5).GoString())
+	assert.Equal(t, `nullable.Nullable[int8]{Data:5,Valid:true}`, Value(int8(5)).GoString())
 }

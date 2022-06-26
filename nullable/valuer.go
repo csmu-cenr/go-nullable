@@ -3,7 +3,7 @@ package nullable
 import "database/sql/driver"
 
 func (n Nullable[T]) Value() (driver.Value, error) {
-	if !n.IsValid {
+	if !n.Valid {
 		return nil, nil
 	}
 	return n.Data, nil

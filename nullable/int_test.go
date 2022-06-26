@@ -14,7 +14,7 @@ func Test_Int_from_value(t *testing.T) {
 	assertIntValue(t, i, "Data()")
 
 	zero := Value(0)
-	if !zero.IsValid {
+	if !zero.Valid {
 		t.Error("Data(0)", "is invalid, but should be valid")
 	}
 }
@@ -26,7 +26,7 @@ func Test_Int_from_pointer(t *testing.T) {
 	assertIntValue(t, i, "ValueFromPointer()")
 
 	null := ValueFromPointer[int](nil)
-	assert.False(t, null.IsValid)
+	assert.False(t, null.Valid)
 }
 
 func Test_Json_unmarshal_int(t *testing.T) {
@@ -55,14 +55,14 @@ func Test_Json_unmarshal_int(t *testing.T) {
 	var null Nullable[int]
 	err = json.Unmarshal(nullJSON, &null)
 	assert.NoError(t, err)
-	assert.False(t, null.IsValid)
+	assert.False(t, null.Valid)
 
 	var badType Nullable[int]
 	err = json.Unmarshal(boolJSON, &badType)
 	if err == nil {
 		panic("err should not be nil")
 	}
-	assert.False(t, badType.IsValid)
+	assert.False(t, badType.Valid)
 
 	var invalid Nullable[int]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -70,7 +70,7 @@ func Test_Json_unmarshal_int(t *testing.T) {
 	if !errors.As(err, &syntaxError) {
 		t.Errorf("expected wrapped json.SyntaxError, not %T", err)
 	}
-	assert.False(t, invalid.IsValid)
+	assert.False(t, invalid.Valid)
 }
 
 func Test_Json_unmarshal_non_integer_number(t *testing.T) {
@@ -106,12 +106,12 @@ func Test_Text_unmarshal_int(t *testing.T) {
 	var blank Nullable[int]
 	err = blank.UnmarshalText([]byte(""))
 	assert.NoError(t, err)
-	assert.False(t, blank.IsValid)
+	assert.False(t, blank.Valid)
 
 	var null Nullable[int]
 	err = null.UnmarshalText([]byte("null"))
 	assert.NoError(t, err)
-	assert.False(t, null.IsValid)
+	assert.False(t, null.Valid)
 
 	var invalid Nullable[int]
 	err = invalid.UnmarshalText([]byte("hello world"))
@@ -124,26 +124,26 @@ func Test_Json_marshal_int(t *testing.T) {
 	i := Value(12345)
 	data, err := json.Marshal(i)
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, "12345", "non-empty json marshal")
+	assert.Equal(t, "12345", string(data))
 
 	// invalid values should be encoded as null
 	null := Nullable[int]{0, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, "null", "null json marshal")
+	assert.Equal(t, "null", string(data))
 }
 
 func Test_Text_marshal_int(t *testing.T) {
 	i := Value(12345)
 	data, err := i.MarshalText()
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, "12345", "non-empty text marshal")
+	assert.Equal(t, "12345", string(data))
 
 	// invalid values should be encoded as null
 	null := Nullable[int]{0, false}
 	data, err = null.MarshalText()
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, "", "null text marshal")
+	assert.Equal(t, "", string(data))
 }
 
 func Test_Int_ValueOrZero(t *testing.T) {
@@ -193,7 +193,19 @@ func Test_Int_Scan(t *testing.T) {
 	var null Nullable[int]
 	err = null.Scan(nil)
 	assert.NoError(t, err)
-	assert.False(t, null.IsValid)
+	assert.False(t, null.Valid)
+}
+
+func Test_IsZero_int(t *testing.T) {
+	var i Nullable[int]
+	assert.True(t, i.IsZero())
+
+	var zeroInt int
+	i = Value(zeroInt)
+	assert.True(t, i.IsZero())
+
+	i = Value(1)
+	assert.False(t, i.IsZero())
 }
 
 func assertIntValue(t *testing.T, i Nullable[int], source string) {
@@ -201,7 +213,7 @@ func assertIntValue(t *testing.T, i Nullable[int], source string) {
 	if i.Data != 12345 {
 		t.Errorf("bad %s int: %d ≠ %d\n", source, i.Data, 12345)
 	}
-	if !i.IsValid {
+	if !i.Valid {
 		t.Error(source, "should be valid")
 	}
 }

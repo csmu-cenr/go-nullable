@@ -8,7 +8,7 @@ import (
 )
 
 func (n Nullable[T]) MarshalText() ([]byte, error) {
-	if !n.IsValid {
+	if !n.Valid {
 		return []byte{}, nil
 	}
 
@@ -34,7 +34,7 @@ func (n Nullable[T]) MarshalText() ([]byte, error) {
 }
 
 func marshalTextInt[T any](f Nullable[T]) ([]byte, error) {
-	if !f.IsValid {
+	if !f.Valid {
 		return []byte{}, nil
 	}
 
@@ -56,7 +56,7 @@ func marshalTextInt[T any](f Nullable[T]) ([]byte, error) {
 }
 
 func marshalTextFloat[T any](f Nullable[T]) ([]byte, error) {
-	if !f.IsValid {
+	if !f.Valid {
 		return []byte{}, nil
 	}
 
@@ -72,7 +72,7 @@ func marshalTextFloat[T any](f Nullable[T]) ([]byte, error) {
 }
 
 func marshalTextBool(b Nullable[bool]) ([]byte, error) {
-	if !b.IsValid {
+	if !b.Valid {
 		return []byte{}, nil
 	}
 	if !b.Data {
@@ -86,7 +86,7 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	str := string(text)
 
 	if str == "" || str == "null" {
-		n.IsValid = false
+		n.Valid = false
 		return nil
 	}
 
@@ -94,10 +94,10 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 	if ok {
 		err := txt.UnmarshalText(text)
 		if err != nil {
-			n.IsValid = false
+			n.Valid = false
 			return err
 		}
-		n.IsValid = true
+		n.Valid = true
 		return nil
 	}
 
@@ -110,7 +110,7 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 		return unmarshalTextInt(str, n)
 	case string:
 		n.Data = any(str).(T)
-		n.IsValid = str != ""
+		n.Valid = str != ""
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func (n *Nullable[T]) UnmarshalText(text []byte) error {
 func unmarshalTextBool(str string, b *Nullable[bool]) error {
 	switch str {
 	case "", "null":
-		b.IsValid = false
+		b.Valid = false
 		return nil
 	case "true":
 		b.Data = true
@@ -130,13 +130,13 @@ func unmarshalTextBool(str string, b *Nullable[bool]) error {
 	default:
 		return errors.New("null: invalid input for UnmarshalText:" + str)
 	}
-	b.IsValid = true
+	b.Valid = true
 	return nil
 }
 
 func unmarshalTextFloat[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
-		f.IsValid = false
+		f.Valid = false
 		return nil
 	}
 
@@ -161,13 +161,13 @@ func unmarshalTextFloat[T any](str string, f *Nullable[T]) error {
 		f.Data = any(n).(T)
 	}
 
-	f.IsValid = true
+	f.Valid = true
 	return err
 }
 
 func unmarshalTextInt[T any](str string, f *Nullable[T]) error {
 	if str == "" || str == "null" {
-		f.IsValid = false
+		f.Valid = false
 		return nil
 	}
 
@@ -202,6 +202,6 @@ func unmarshalTextInt[T any](str string, f *Nullable[T]) error {
 		f.Data = any(n).(T)
 	}
 
-	f.IsValid = true
+	f.Valid = true
 	return err
 }

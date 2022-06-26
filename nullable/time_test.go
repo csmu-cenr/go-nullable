@@ -25,12 +25,12 @@ var (
 func Test_Json_unmarshal_time(t *testing.T) {
 	var ti Nullable[time.Time]
 	err := json.Unmarshal(timeJSON, &ti)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertTime(t, ti, "UnmarshalJSON() json")
 
 	var null Nullable[time.Time]
 	err = json.Unmarshal(nullTimeJSON, &null)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 
 	var fromObject Nullable[time.Time]
@@ -71,20 +71,20 @@ func Test_Json_unmarshal_time(t *testing.T) {
 func Test_Text_unmarshal_time(t *testing.T) {
 	ti := Value(timeValue1)
 	txt, err := ti.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, txt, timeString1, "marshal text")
 
 	var unmarshal Nullable[time.Time]
 	err = unmarshal.UnmarshalText(txt)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertTime(t, unmarshal, "unmarshal text")
 
 	var null Nullable[time.Time]
 	err = null.UnmarshalText(nullJSON)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 	txt, err = null.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, txt, "", "marshal null text")
 
 	var invalid Nullable[time.Time]
@@ -98,12 +98,12 @@ func Test_Text_unmarshal_time(t *testing.T) {
 func Test_Json_marshal_time(t *testing.T) {
 	ti := Value(timeValue1)
 	data, err := json.Marshal(ti)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, string(timeJSON), "non-empty json marshal")
 
 	ti.IsValid = false
 	data, err = json.Marshal(ti)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, string(nullJSON), "null json marshal")
 }
 
@@ -196,7 +196,7 @@ func Test_Time_ExactEqual(t *testing.T) {
 func Test_Time_Scan(t *testing.T) {
 	var ti Nullable[time.Time]
 	err := ti.Scan(timeValue1)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertTime(t, ti, "scanned time")
 	if v, err := ti.Value(); v != timeValue1 || err != nil {
 		t.Error("bad value or err:", v, err)
@@ -204,7 +204,7 @@ func Test_Time_Scan(t *testing.T) {
 
 	var null Nullable[time.Time]
 	err = null.Scan(nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 	if v, err := null.Value(); v != nil || err != nil {
 		t.Error("bad value or err:", v, err)

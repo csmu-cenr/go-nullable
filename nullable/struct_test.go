@@ -21,7 +21,7 @@ func Test_Json_of_struct(t *testing.T) {
 		CategoryId: Nullable[int]{},
 	}
 	jsonData, err := json.Marshal(tsk)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, jsonData, `{"task_id":1,"project_id":5,"subject":"kjell","category_id":null}`, "struct marshal")
 }
 
@@ -29,7 +29,7 @@ func Test_Struct_from_JSON(t *testing.T) {
 	jsonData := []byte(`{"task_id":1,"project_id":5,"subject":"kjell","category_id":null}`)
 	var tsk task
 	err := json.Unmarshal(jsonData, &tsk)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, tsk.TaskId)
 	assert.True(t, tsk.ProjectId.IsValid)
 	assert.Equal(t, 5, tsk.ProjectId.Data)

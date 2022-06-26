@@ -34,7 +34,7 @@ func Test_String_from_pointer(t *testing.T) {
 func Test_Json_unmarshal_string(t *testing.T) {
 	var str Nullable[string]
 	err := json.Unmarshal(stringJSON, &str)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertStr(t, str, "string json")
 
 	var ns Nullable[string]
@@ -45,14 +45,14 @@ func Test_Json_unmarshal_string(t *testing.T) {
 
 	var blank Nullable[string]
 	err = json.Unmarshal(blankStringJSON, &blank)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	if !blank.IsValid {
 		t.Error("blank string should be valid")
 	}
 
 	var null Nullable[string]
 	err = json.Unmarshal(nullJSON, &null)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 
 	var badType Nullable[string]
@@ -74,51 +74,51 @@ func Test_Json_unmarshal_string(t *testing.T) {
 func Test_Text_unmarshal_string(t *testing.T) {
 	var str Nullable[string]
 	err := str.UnmarshalText([]byte("test"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertStr(t, str, "UnmarshalText() string")
 
 	var null Nullable[string]
 	err = null.UnmarshalText([]byte(""))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 }
 
 func Test_Json_marshal_string(t *testing.T) {
 	str := Value("test")
 	data, err := json.Marshal(str)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, `"test"`, "non-empty json marshal")
 	data, err = str.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "test", "non-empty text marshal")
 
 	// empty values should be encoded as an empty string
 	zero := Value("")
 	data, err = json.Marshal(zero)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, `""`, "empty json marshal")
 	data, err = zero.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "", "string marshal text")
 
 	null := ValueFromPointer[string](nil)
 	data, err = json.Marshal(null)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, `null`, "null json marshal")
 	data, err = null.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "", "string marshal text")
 }
 
 func Test_Json_marshal_string_in_struct(t *testing.T) {
 	obj := stringInStruct{Test: Value("")}
 	data, err := json.Marshal(obj)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, `{"test":""}`, "null string in struct")
 
 	obj = stringInStruct{Test: Nullable[string]{}}
 	data, err = json.Marshal(obj)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, `{"test":null}`, "null string in struct")
 }
 
@@ -163,12 +163,12 @@ func Test_String_equal(t *testing.T) {
 func Test_String_scan(t *testing.T) {
 	var str Nullable[string]
 	err := str.Scan("test")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertStr(t, str, "scanned string")
 
 	var null Nullable[string]
 	err = null.Scan(nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 }
 

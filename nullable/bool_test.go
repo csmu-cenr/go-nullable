@@ -30,7 +30,7 @@ func Test_Bool_from_pointer(t *testing.T) {
 func Test_Json_unmarshal_bool(t *testing.T) {
 	var b Nullable[bool]
 	err := json.Unmarshal(boolJSON, &b)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertBool(t, b, "bool json")
 
 	var nb Nullable[bool]
@@ -39,7 +39,7 @@ func Test_Json_unmarshal_bool(t *testing.T) {
 
 	var null Nullable[bool]
 	err = json.Unmarshal(nullJSON, &null)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 
 	var badType Nullable[bool]
@@ -58,22 +58,22 @@ func Test_Json_unmarshal_bool(t *testing.T) {
 func Test_Text_unmarshal_bool(t *testing.T) {
 	var b Nullable[bool]
 	err := b.UnmarshalText([]byte("true"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertBool(t, b, "UnmarshalText() bool")
 
 	var falseBool Nullable[bool]
 	err = falseBool.UnmarshalText([]byte("false"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertFalseBool(t, falseBool, "UnmarshalText() false")
 
 	var fromBlankString Nullable[bool]
 	err = fromBlankString.UnmarshalText([]byte(""))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, fromBlankString.IsValid)
 
 	var fromNullString Nullable[bool]
 	err = fromNullString.UnmarshalText([]byte("null"))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, fromNullString.IsValid)
 
 	var invalid Nullable[bool]
@@ -87,36 +87,36 @@ func Test_Text_unmarshal_bool(t *testing.T) {
 func Test_Json_marshal_bool(t *testing.T) {
 	b := Value(true)
 	data, err := json.Marshal(b)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "true", "non-empty json marshal")
 
 	zero := Value(false)
 	data, err = json.Marshal(zero)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "false", "zero json marshal")
 
 	// invalid values should be encoded as null
 	null := Null[bool]()
 	data, err = json.Marshal(null)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "null", "null json marshal")
 }
 
 func Test_Text_marshal_bool(t *testing.T) {
 	b := Value(true)
 	data, err := b.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "true", "non-empty text marshal")
 
 	zero := Value(false)
 	data, err = zero.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "false", "zero text marshal")
 
 	// invalid values should be encoded as null
 	null := Null[bool]()
 	data, err = null.MarshalText()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertJSONEquals(t, data, "", "null text marshal")
 }
 
@@ -161,12 +161,12 @@ func Test_Bool_Equal(t *testing.T) {
 func Test_Bool_Scan(t *testing.T) {
 	var b Nullable[bool]
 	err := b.Scan(true)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assertBool(t, b, "scanned bool")
 
 	var null Nullable[bool]
 	err = null.Scan(nil)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.False(t, null.IsValid)
 }
 

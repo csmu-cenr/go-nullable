@@ -63,7 +63,7 @@ func Test_Json_unmarshal(t *testing.T) {
 	var project testProject
 	jsonData := "{ \"Id\": 15, \"Number\": \"1234\", \"Notes\": \"Some notes\", \"DepartmentId\": 12 }"
 	err := json.Unmarshal([]byte(jsonData), &project)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
 	assert.True(t, project.Notes.IsValid)
 	assert.Equal(t, "Some notes", project.Notes.Data)
@@ -75,7 +75,7 @@ func Test_Json_unmarshal_with_null(t *testing.T) {
 	var project testProject
 	jsonData := "{ \"Id\": 15, \"Number\": \"1234\", \"Notes\": null, \"DepartmentId\": null }"
 	err := json.Unmarshal([]byte(jsonData), &project)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
 	assert.False(t, project.Notes.IsValid)
 	assert.False(t, project.DepartmentId.IsValid)
@@ -85,7 +85,7 @@ func Test_Json_unmarshal_with_missing_values(t *testing.T) {
 	var project testProject
 	jsonData := "{ \"Id\": 15, \"Number\": \"1234\" }"
 	err := json.Unmarshal([]byte(jsonData), &project)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 15, project.Id)
 	assert.False(t, project.Notes.IsValid)
 	assert.False(t, project.DepartmentId.IsValid)

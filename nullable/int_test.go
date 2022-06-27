@@ -42,15 +42,11 @@ func Test_Json_unmarshal_int(t *testing.T) {
 
 	var ni Nullable[int]
 	err = json.Unmarshal(nullIntJSON, &ni)
-	if err == nil {
-		panic("err should not be nill")
-	}
+	assert.Error(t, err)
 
 	var bi Nullable[int]
 	err = json.Unmarshal(floatBlankJSON, &bi)
-	if err == nil {
-		panic("err should not be nill")
-	}
+	assert.Error(t, err)
 
 	var null Nullable[int]
 	err = json.Unmarshal(nullJSON, &null)
@@ -59,9 +55,7 @@ func Test_Json_unmarshal_int(t *testing.T) {
 
 	var badType Nullable[int]
 	err = json.Unmarshal(boolJSON, &badType)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.Error(t, err)
 	assert.False(t, badType.Valid)
 
 	var invalid Nullable[int]
@@ -76,9 +70,7 @@ func Test_Json_unmarshal_int(t *testing.T) {
 func Test_Json_unmarshal_non_integer_number(t *testing.T) {
 	var i Nullable[int]
 	err := json.Unmarshal(floatJSON, &i)
-	if err == nil {
-		panic("err should be present; non-integer number coerced to int")
-	}
+	assert.Error(t, err, "err should be present; non-integer number coerced to int")
 }
 
 func Test_Json_unmarshal_int64_overflow(t *testing.T) {
@@ -92,9 +84,7 @@ func Test_Json_unmarshal_int64_overflow(t *testing.T) {
 	// Attempt to overflow
 	int64Overflow++
 	err = json.Unmarshal([]byte(strconv.FormatUint(int64Overflow, 10)), &i)
-	if err == nil {
-		panic("err should be present; decoded value overflows int64")
-	}
+	assert.Error(t, err, "err should be present; decoded value overflows int64")
 }
 
 func Test_Text_unmarshal_int(t *testing.T) {
@@ -115,9 +105,7 @@ func Test_Text_unmarshal_int(t *testing.T) {
 
 	var invalid Nullable[int]
 	err = invalid.UnmarshalText([]byte("hello world"))
-	if err == nil {
-		panic("expected error")
-	}
+	assert.Error(t, err)
 }
 
 func Test_Json_marshal_int(t *testing.T) {

@@ -39,16 +39,12 @@ func Test_Json_unmarshal_string(t *testing.T) {
 
 	var ns Nullable[string]
 	err = json.Unmarshal(nullStringJSON, &ns)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.Error(t, err)
 
 	var blank Nullable[string]
 	err = json.Unmarshal(blankStringJSON, &blank)
 	assert.NoError(t, err)
-	if !blank.Valid {
-		t.Error("blank string should be valid")
-	}
+	assert.True(t, blank.Valid)
 
 	var null Nullable[string]
 	err = json.Unmarshal(nullJSON, &null)
@@ -57,9 +53,7 @@ func Test_Json_unmarshal_string(t *testing.T) {
 
 	var badType Nullable[string]
 	err = json.Unmarshal(boolJSON, &badType)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.Error(t, err)
 	assert.False(t, badType.Valid)
 
 	var invalid Nullable[string]
@@ -114,12 +108,12 @@ func Test_Json_marshal_string_in_struct(t *testing.T) {
 	obj := stringInStruct{Test: Value("")}
 	data, err := json.Marshal(obj)
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, `{"test":""}`, "null string in struct")
+	assertJSONEquals(t, `{"test":""}`, data, "null string in struct")
 
 	obj = stringInStruct{Test: Nullable[string]{}}
 	data, err = json.Marshal(obj)
 	assert.NoError(t, err)
-	assertJSONEquals(t, data, `{"test":null}`, "null string in struct")
+	assertJSONEquals(t, `{"test":null}`, data, "null string in struct")
 }
 
 func Test_String_ValueOrZero(t *testing.T) {

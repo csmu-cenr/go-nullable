@@ -53,15 +53,11 @@ func Test_Json_unmarshal_float64(t *testing.T) {
 
 	var blank Nullable[float64]
 	err = json.Unmarshal(floatBlankJSON, &blank)
-	if err == nil {
-		panic("expected error")
-	}
+	assert.Error(t, err)
 
 	var badType Nullable[float64]
 	err = json.Unmarshal(boolJSON, &badType)
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.Error(t, err)
 
 	var invalid Nullable[float64]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -125,9 +121,7 @@ func Test_Text_unmarshal_float64(t *testing.T) {
 
 	var invalid Nullable[float64]
 	err = invalid.UnmarshalText([]byte("hello world"))
-	if err == nil {
-		panic("expected error")
-	}
+	assert.Error(t, err)
 }
 
 func Test_Json_marshal_float(t *testing.T) {
@@ -172,15 +166,11 @@ func Test_Text_marshal_float64(t *testing.T) {
 func Test_Float_Inf_and_NaN(t *testing.T) {
 	nan := Nullable[float64]{math.NaN(), true}
 	_, err := nan.MarshalJSON()
-	if err == nil {
-		t.Error("expected error for NaN, got nil")
-	}
+	assert.Error(t, err, "expected error for NaN")
 
 	inf := Nullable[float64]{math.Inf(1), true}
 	_, err = inf.MarshalJSON()
-	if err == nil {
-		t.Error("expected error for Inf, got nil")
-	}
+	assert.Error(t, err, "expected error for Inf")
 }
 
 func Test_Float_ValueOrZero(t *testing.T) {

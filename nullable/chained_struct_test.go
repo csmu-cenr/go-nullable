@@ -82,5 +82,5 @@ func Test_Json_marshal_chain_with_null_value(t *testing.T) {
 
 	jsonData, err := json.Marshal(john)
 	assert.NoError(t, err)
-	assertJSONEquals(t, jsonData, `{ "firstName": "John", "lastName": "Smith", "postAddress": { "addressLine": "RoadStreet 1A", "postNumber": "1234", "city": "Texas", "addressLine2": null, "county": null }, "officeAddress": null }`, "chain struct marshal")
+	assertJSONEquals(t, `{ "firstName": "John", "lastName": "Smith", "postAddress": { "addressLine": "RoadStreet 1A", "postNumber": "1234", "city": "Texas", "addressLine2": null, "county": null }, "officeAddress": null }`, jsonData, "chain struct marshal")
 }

@@ -78,9 +78,7 @@ func Test_Text_unmarshal_bool(t *testing.T) {
 
 	var invalid Nullable[bool]
 	err = invalid.UnmarshalText([]byte(":D"))
-	if err == nil {
-		panic("err should not be nil")
-	}
+	assert.Error(t, err)
 	assert.False(t, invalid.Valid)
 }
 

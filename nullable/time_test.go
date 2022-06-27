@@ -35,15 +35,11 @@ func Test_Json_unmarshal_time(t *testing.T) {
 
 	var fromObject Nullable[time.Time]
 	err = json.Unmarshal(timeObject, &fromObject)
-	if err == nil {
-		panic("expected error")
-	}
+	assert.Error(t, err)
 
 	var nullFromObj Nullable[time.Time]
 	err = json.Unmarshal(nullObject, &nullFromObj)
-	if err == nil {
-		panic("expected error")
-	}
+	assert.Error(t, err)
 
 	var invalid Nullable[time.Time]
 	err = invalid.UnmarshalJSON(invalidJSON)
@@ -55,16 +51,12 @@ func Test_Json_unmarshal_time(t *testing.T) {
 
 	var bad Nullable[time.Time]
 	err = json.Unmarshal(badObject, &bad)
-	if err == nil {
-		t.Errorf("expected error: bad object")
-	}
+	assert.Error(t, err)
 	assert.False(t, bad.Valid)
 
 	var wrongType Nullable[time.Time]
 	err = json.Unmarshal(intJSON, &wrongType)
-	if err == nil {
-		t.Errorf("expected error: wrong type JSON")
-	}
+	assert.Error(t, err)
 	assert.False(t, wrongType.Valid)
 }
 
@@ -89,9 +81,7 @@ func Test_Text_unmarshal_time(t *testing.T) {
 
 	var invalid Nullable[time.Time]
 	err = invalid.UnmarshalText([]byte("hello world"))
-	if err == nil {
-		t.Error("expected error")
-	}
+	assert.Error(t, err)
 	assert.False(t, invalid.Valid)
 }
 

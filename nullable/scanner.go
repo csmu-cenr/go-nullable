@@ -32,7 +32,7 @@ func (n *Nullable[T]) getScanner() sql.Scanner {
 	return nil
 }
 
-func (n *Nullable[T]) getScannerValue(scanner sql.Scanner) any {
+func (n *Nullable[T]) getScannerValue(scanner sql.Scanner) {
 	switch s := scanner.(type) {
 	case *sql.NullString:
 		n.Valid = s.Valid
@@ -66,8 +66,6 @@ func (n *Nullable[T]) getScannerValue(scanner sql.Scanner) any {
 		n.Valid = s.Valid
 		n.Data = any(s.Time).(T)
 	}
-
-	return nil
 }
 
 func (n *Nullable[T]) Scan(value any) error {

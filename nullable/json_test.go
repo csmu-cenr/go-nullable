@@ -38,19 +38,6 @@ var (
 	nullStringJSON  = []byte(`{"String":"test","Valid":true}`)
 )
 
-func assertJSONEquals(t *testing.T, expected string, actual []byte, source string) {
-	t.Helper()
-
-	var actualDecoded map[string]interface{}
-	var expectedDecoded map[string]interface{}
-
-	err := json.Unmarshal(actual, &actualDecoded)
-	assert.NoError(t, err)
-	err = json.Unmarshal([]byte(expected), &expectedDecoded)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedDecoded, actualDecoded, "bad %s data: %s ≠ %s\n", source, actual, expected)
-}
-
 func assertEqual[T any](t *testing.T, a, b Nullable[T]) {
 	t.Helper()
 	assert.True(t, a.Equal(b), "Equal() of Nullable{\"%v\", Valid:%t} and Nullable{\"%v\", Valid:%t} should return true", a.Data, a.Valid, b.Data, b.Valid)

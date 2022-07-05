@@ -108,12 +108,12 @@ func Test_Json_marshal_string_in_struct(t *testing.T) {
 	obj := stringInStruct{Test: Value("")}
 	data, err := json.Marshal(obj)
 	assert.NoError(t, err)
-	assertJSONEquals(t, `{"test":""}`, data, "null string in struct")
+	assert.JSONEq(t, `{"test":""}`, string(data), "null string in struct")
 
 	obj = stringInStruct{Test: Nullable[string]{}}
 	data, err = json.Marshal(obj)
 	assert.NoError(t, err)
-	assertJSONEquals(t, `{"test":null}`, data, "null string in struct")
+	assert.JSONEq(t, `{"test":null}`, string(data), "null string in struct")
 }
 
 func Test_String_ValueOrZero(t *testing.T) {

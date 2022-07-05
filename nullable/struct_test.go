@@ -22,7 +22,7 @@ func Test_Json_of_struct(t *testing.T) {
 	}
 	jsonData, err := json.Marshal(tsk)
 	assert.NoError(t, err)
-	assertJSONEquals(t, `{"task_id":1,"project_id":5,"subject":"kjell","category_id":null}`, jsonData, "struct marshal")
+	assert.JSONEq(t, `{"task_id":1,"project_id":5,"subject":"kjell","category_id":null}`, string(jsonData), "struct marshal")
 }
 
 func Test_Struct_from_JSON(t *testing.T) {

@@ -7,8 +7,9 @@ import (
 
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
-	Data  T
-	Valid bool
+	Data     T    `json:"data,omitempty"`
+	Valid    bool `json:"-"`
+	Selected bool `json:"-"`
 }
 
 // Value Create a Nullable from a value
@@ -41,12 +42,13 @@ func (n Nullable[T]) ValueOrZero() T {
 	return n.Data
 }
 
+// IsZero is the function used by the omitempty tag to determine if the field should be omitted.
 func (n Nullable[T]) IsZero() bool {
-	if !n.Valid {
+	if n.Selected {
+		return false
+	} else {
 		return true
 	}
-	var ref T
-	return any(ref) == any(n.Data)
 }
 
 // Equal Check if this Nullable is equal to another Nullable

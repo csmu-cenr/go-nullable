@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"regexp"
 	"strconv"
-	"strings"
 )
 
 var nullBytes = []byte("null")
@@ -16,33 +13,7 @@ func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return json.Marshal(nil)
 	}
-	if n.Selected {
-		return json.Marshal(n.Data)
-	}
-	return OmitEmpty(n.Data)
-}
-
-// https://stackoverflow.com/a/77304217/162358
-func OmitEmpty(data any) ([]byte, error) {
-	value := reflect.ValueOf(data)
-	t := value.Type()
-	sf := make([]reflect.StructField, 0)
-	// modify the 'for i' snippet for more complicated cases
-	for i := 0; i < t.NumField(); i++ {
-		sf = append(sf, t.Field(i))
-		tag := t.Field(i).Tag
-		if !strings.Contains(string(tag), ",omitempty") {
-			r := regexp.MustCompile(`json:"\s*(.*?)\s*"`)
-			matches := r.FindAllStringSubmatch(string(tag), -1)
-			for _, v := range matches {
-				tagKey := v[1]
-				sf[i].Tag = reflect.StructTag(fmt.Sprintf(`json:"%s,omitempty"`, tagKey))
-			}
-		}
-	}
-	newType := reflect.StructOf(sf)
-	newValue := value.Convert(newType)
-	return json.Marshal(newValue.Interface())
+	return json.Marshal(n.Data)
 }
 
 func (n *Nullable[T]) UnmarshalJSON(data []byte) error {

@@ -13,7 +13,10 @@ func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return json.Marshal(nil)
 	}
-	return json.Marshal(n.Data)
+	if n.Selected {
+		return json.Marshal(n.Data)
+	}
+	return json.Marshal(nil)
 }
 
 func (n *Nullable[T]) UnmarshalJSON(data []byte) error {

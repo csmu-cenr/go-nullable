@@ -5,7 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
+
+func formatTimeWithMilliseconds(t time.Time) string {
+	// Use a custom formatting string to include milliseconds
+	formattingString := "2006-01-02 15:04:05.000"
+	return t.Format(formattingString)
+}
 
 var nullBytes = []byte("null")
 
@@ -14,7 +21,12 @@ func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 	if n.Selected {
-		return json.Marshal(n.Data)
+		switch nData := any(n.Data).(type) {
+		case time.Time:
+			return json.Marshal(formatTimeWithMilliseconds(nData))
+		default:
+			return json.Marshal(nData)
+		}
 	}
 	return json.Marshal(nil)
 }

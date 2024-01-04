@@ -2,8 +2,81 @@ package nullable
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 )
+
+func hasField(typ reflect.Type, fieldName string) bool {
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if field.Name == fieldName {
+			return true
+		}
+	}
+	return false
+}
+
+func fieldNameIsInFields(fieldName string, fields []string) bool {
+	for i := 0; i < len(fields); i++ {
+		if fieldName == fields[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]interface{} {
+	var results []map[string]interface{}
+
+	sliceValue := reflect.ValueOf(slice)
+	if sliceValue.Kind() != reflect.Slice {
+		return results
+	}
+
+	results = make([]map[string]interface{}, 0)
+	for i := 0; i < sliceValue.Len(); i++ {
+		element := sliceValue.Index(i).Interface()
+		selectedFields := GetSelectedFields(element, fields)
+		results = append(results, selectedFields)
+	}
+
+	return results
+}
+
+func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	val := reflect.ValueOf(v)
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+		fieldName := fieldType.Name
+		jsonTag := fieldType.Tag.Get("json")
+		if strings.Contains(jsonTag, ",") {
+			jsonTag = strings.Split(jsonTag, ",")[0]
+		}
+		if jsonTag == "" {
+			jsonTag = fieldName
+		}
+		fieldNameInFields := fieldNameIsInFields(fieldName, fields)
+		if !fieldNameInFields {
+			fieldNameInFields = fieldNameIsInFields(jsonTag, fields)
+		}
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
+			selectedField := field.FieldByName("Selected")
+			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
+				result[jsonTag] = field.Interface()
+			}
+		} else if fieldNameInFields {
+			result[jsonTag] = field.Interface()
+		}
+	}
+
+	return result
+}
 
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {

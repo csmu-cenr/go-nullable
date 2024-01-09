@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+func fieldNameIsInFields(fieldName string, fields []string) bool {
+	for i := 0; i < len(fields); i++ {
+		if fieldName == fields[i] {
+			return true
+		}
+	}
+	return false
+}
+
 func hasField(typ reflect.Type, fieldName string) bool {
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
@@ -17,13 +26,32 @@ func hasField(typ reflect.Type, fieldName string) bool {
 	return false
 }
 
-func fieldNameIsInFields(fieldName string, fields []string) bool {
-	for i := 0; i < len(fields); i++ {
-		if fieldName == fields[i] {
-			return true
+func FindSelectedFields(data any) []string {
+	result := []string{}
+
+	val := reflect.ValueOf(data)
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+		fieldName := fieldType.Name
+		jsonTag := fieldType.Tag.Get("json")
+		if strings.Contains(jsonTag, ",") {
+			jsonTag = strings.Split(jsonTag, ",")[0]
+		}
+		if jsonTag == "" {
+			jsonTag = fieldName
+		}
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
+			selectedField := field.FieldByName("Selected")
+			if selectedField.IsValid() && selectedField.Bool() {
+				result = append(result, jsonTag)
+			}
 		}
 	}
-	return false
+
+	return result
 }
 
 func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]interface{} {
@@ -54,24 +82,27 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
 		fieldName := fieldType.Name
-		jsonTag := fieldType.Tag.Get("json")
-		if strings.Contains(jsonTag, ",") {
-			jsonTag = strings.Split(jsonTag, ",")[0]
+		key := fieldType.Tag.Get("json")
+		if strings.Contains(key, ",") {
+			key = strings.Split(key, ",")[0]
 		}
-		if jsonTag == "" {
-			jsonTag = fieldName
+		if key == "" {
+			key = fieldName
 		}
-		fieldNameInFields := fieldNameIsInFields(fieldName, fields)
-		if !fieldNameInFields {
-			fieldNameInFields = fieldNameIsInFields(jsonTag, fields)
-		}
+		fieldNameInFields := fieldNameIsInFields(key, fields)
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
 			selectedField := field.FieldByName("Selected")
 			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
-				result[jsonTag] = field.Interface()
+				result[key] = field.Interface()
 			}
+		} else if field.Kind() == reflect.Struct {
+			value := field.Interface()
+			result[key] = GetSelectedFields(value, fields)
+		} else if field.Kind() == reflect.Slice {
+			value := field.Interface()
+			result[key] = GetSelectedFieldsSlice(value, fields)
 		} else if fieldNameInFields {
-			result[jsonTag] = field.Interface()
+			result[key] = field.Interface()
 		}
 	}
 
@@ -80,9 +111,9 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
-	Data     T    `json:"data,omitempty"`
-	Valid    bool `json:"-"`
-	Selected bool `json:"-"`
+	Data     T
+	Valid    bool
+	Selected bool
 }
 
 // Value Create a Nullable from a value

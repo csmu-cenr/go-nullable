@@ -97,10 +97,15 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 			}
 		} else if field.Kind() == reflect.Struct {
 			value := field.Interface()
-			result[key] = GetSelectedFields(value, fields)
+			mapped := GetSelectedFields(value, fields)
+			if len(mapped) > 0 {
+				result[key] = mapped
+			}
 		} else if field.Kind() == reflect.Slice {
-			value := field.Interface()
-			result[key] = GetSelectedFieldsSlice(value, fields)
+			if field.Len() > 0 {
+				value := field.Interface()
+				result[key] = GetSelectedFieldsSlice(value, fields)
+			}
 		} else if fieldNameInFields {
 			result[key] = field.Interface()
 		}

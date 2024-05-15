@@ -121,6 +121,13 @@ type Nullable[T any] struct {
 	Selected bool
 }
 
+// Set assigns a value as well as selected and valid.
+func (n *Nullable[T]) Set(data T) {
+	n.Data = data
+	n.Valid = true
+	n.Selected = true
+}
+
 // Value Create a Nullable from a value
 func Value[T any](value T) Nullable[T] {
 	if any(value) == nil {
@@ -182,5 +189,5 @@ func (n Nullable[T]) String() string {
 
 func (n Nullable[T]) GoString() string {
 	var ref T
-	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v}", ref, n.Data, n.Valid)
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
 }

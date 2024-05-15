@@ -3,8 +3,9 @@ package nullable
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type stringInStruct struct {
@@ -117,40 +118,40 @@ func Test_Json_marshal_string_in_struct(t *testing.T) {
 }
 
 func Test_String_ValueOrZero(t *testing.T) {
-	valid := Nullable[string]{"test", true}
+	valid := Nullable[string]{"test", true, false}
 	if valid.ValueOrZero() != "test" {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[string]{"test", false}
+	invalid := Nullable[string]{"test", false, false}
 	if invalid.ValueOrZero() != "" {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func Test_String_equal(t *testing.T) {
-	str1 := Nullable[string]{"foo", false}
-	str2 := Nullable[string]{"foo", false}
+	str1 := Nullable[string]{"foo", false, false}
+	str2 := Nullable[string]{"foo", false, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", false}
-	str2 = Nullable[string]{"bar", false}
+	str1 = Nullable[string]{"foo", false, false}
+	str2 = Nullable[string]{"bar", false, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true}
-	str2 = Nullable[string]{"foo", true}
+	str1 = Nullable[string]{"foo", true, false}
+	str2 = Nullable[string]{"foo", true, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true}
-	str2 = Nullable[string]{"foo", false}
+	str1 = Nullable[string]{"foo", true, false}
+	str2 = Nullable[string]{"foo", false, false}
 	assertNotEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", false}
-	str2 = Nullable[string]{"foo", true}
+	str1 = Nullable[string]{"foo", false, false}
+	str2 = Nullable[string]{"foo", true, false}
 	assertNotEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true}
-	str2 = Nullable[string]{"bar", true}
+	str1 = Nullable[string]{"foo", true, false}
+	str2 = Nullable[string]{"bar", true, false}
 	assertNotEqual(t, str1, str2)
 }
 

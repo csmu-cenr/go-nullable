@@ -3,9 +3,10 @@ package nullable
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Float_from_value(t *testing.T) {
@@ -131,7 +132,7 @@ func Test_Json_marshal_float(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float64]{0, false}
+	null := Nullable[float64]{0, false, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
 	assert.Equal(t, "null", string(data))
@@ -144,7 +145,7 @@ func Test_Json_marshal_float32(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float32]{0, false}
+	null := Nullable[float32]{0, false, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
 	assert.Equal(t, "null", string(data))
@@ -157,57 +158,57 @@ func Test_Text_marshal_float64(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float64]{0, false}
+	null := Nullable[float64]{0, false, false}
 	data, err = null.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(data))
 }
 
 func Test_Float_Inf_and_NaN(t *testing.T) {
-	nan := Nullable[float64]{math.NaN(), true}
+	nan := Nullable[float64]{math.NaN(), true, false}
 	_, err := nan.MarshalJSON()
 	assert.Error(t, err, "expected error for NaN")
 
-	inf := Nullable[float64]{math.Inf(1), true}
+	inf := Nullable[float64]{math.Inf(1), true, false}
 	_, err = inf.MarshalJSON()
 	assert.Error(t, err, "expected error for Inf")
 }
 
 func Test_Float_ValueOrZero(t *testing.T) {
-	valid := Nullable[float64]{1.2345, true}
+	valid := Nullable[float64]{1.2345, true, false}
 	if valid.ValueOrZero() != 1.2345 {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[float64]{1.2345, false}
+	invalid := Nullable[float64]{1.2345, false, false}
 	if invalid.ValueOrZero() != 0 {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func Test_Float_Equal(t *testing.T) {
-	f1 := Nullable[float64]{10, false}
-	f2 := Nullable[float64]{10, false}
+	f1 := Nullable[float64]{10, false, false}
+	f2 := Nullable[float64]{10, false, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, false}
-	f2 = Nullable[float64]{20, false}
+	f1 = Nullable[float64]{10, false, false}
+	f2 = Nullable[float64]{20, false, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true}
-	f2 = Nullable[float64]{10, true}
+	f1 = Nullable[float64]{10, true, false}
+	f2 = Nullable[float64]{10, true, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true}
-	f2 = Nullable[float64]{10, false}
+	f1 = Nullable[float64]{10, true, false}
+	f2 = Nullable[float64]{10, false, false}
 	assertNotEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, false}
-	f2 = Nullable[float64]{10, true}
+	f1 = Nullable[float64]{10, false, false}
+	f2 = Nullable[float64]{10, true, false}
 	assertNotEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true}
-	f2 = Nullable[float64]{20, true}
+	f1 = Nullable[float64]{10, true, false}
+	f2 = Nullable[float64]{20, true, false}
 	assertNotEqual(t, f1, f2)
 }
 

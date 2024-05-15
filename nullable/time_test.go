@@ -3,9 +3,10 @@ package nullable
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -124,62 +125,62 @@ func Test_Time_ValueOrZero(t *testing.T) {
 }
 
 func Test_Time_Equal(t *testing.T) {
-	t1 := Nullable[time.Time]{timeValue1, false}
-	t2 := Nullable[time.Time]{timeValue2, false}
+	t1 := Nullable[time.Time]{timeValue1, false, false}
+	t2 := Nullable[time.Time]{timeValue2, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false}
-	t2 = Nullable[time.Time]{timeValue3, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false}
+	t2 = Nullable[time.Time]{timeValue3, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue2, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue1, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue2, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue2, false, false}
 	assertNotEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false}
-	t2 = Nullable[time.Time]{timeValue2, true}
+	t1 = Nullable[time.Time]{timeValue1, false, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false}
 	assertNotEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue3, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue3, true, false}
 	assertNotEqual(t, t1, t2)
 }
 
 func Test_Time_ExactEqual(t *testing.T) {
-	t1 := Nullable[time.Time]{timeValue1, false}
-	t2 := Nullable[time.Time]{timeValue1, false}
+	t1 := Nullable[time.Time]{timeValue1, false, false}
+	t2 := Nullable[time.Time]{timeValue1, false, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false}
-	t2 = Nullable[time.Time]{timeValue2, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false}
+	t2 = Nullable[time.Time]{timeValue2, false, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue1, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue1, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue1, false, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false}
-	t2 = Nullable[time.Time]{timeValue1, true}
+	t1 = Nullable[time.Time]{timeValue1, false, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue2, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true}
-	t2 = Nullable[time.Time]{timeValue3, true}
+	t1 = Nullable[time.Time]{timeValue1, true, false}
+	t2 = Nullable[time.Time]{timeValue3, true, false}
 	assertNotExactEqual(t, t1, t2)
 }
 

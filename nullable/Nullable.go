@@ -122,24 +122,77 @@ type Nullable[T any] struct {
 }
 
 // Set assigns a value as well as selected and valid.
-func (n *Nullable[T]) Set(data T) {
+func (n *Nullable[T]) Set(data T) error {
+	if n == nil {
+		message := ErrorMessage{Message: `nil pointer`, Attempted: `Set`, Details: data}
+		return message
+	}
 	n.Data = data
 	n.Valid = true
 	n.Selected = true
+	return nil
+}
+
+// True returns whether or not the data is true.
+func (n *Nullable[T]) True() bool {
+	if n == nil {
+		return false
+	}
+
+	switch data := any(n.Data).(type) {
+	case string:
+		switch data {
+		case "true", "yes", "y":
+			return true
+		case "TRUE", "YES", "Y":
+			return true
+		default:
+			return false
+		}
+	case float32:
+		if data == 1 {
+			return true
+		}
+		return false
+	case float64:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int32:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int64:
+		if data == 1 {
+			return true
+		}
+		return false
+	case bool:
+		return data
+	default:
+		return false
+	}
 }
 
 // Value Create a Nullable from a value
 func Value[T any](value T) Nullable[T] {
 	if any(value) == nil {
-		return Nullable[T]{Valid: false}
+		return Nullable[T]{Valid: false, Selected: true}
 	}
-	return Nullable[T]{Data: value, Valid: true}
+	return Nullable[T]{Data: value, Valid: true, Selected: true}
 }
 
 // ValueFromPointer Create a Nullable from a pointer
 func ValueFromPointer[T any](value *T) Nullable[T] {
 	if value == nil {
-		return Nullable[T]{Valid: false}
+		return Nullable[T]{Valid: false, Selected: true}
 	}
 	return Value(*value)
 }

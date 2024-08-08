@@ -26,6 +26,34 @@ func hasField(typ reflect.Type, fieldName string) bool {
 	return false
 }
 
+func FindModifiedFields(data any) []string {
+	result := []string{}
+
+	val := reflect.ValueOf(data)
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+		fieldName := fieldType.Name
+		jsonTag := fieldType.Tag.Get("json")
+		if strings.Contains(jsonTag, ",") {
+			jsonTag = strings.Split(jsonTag, ",")[0]
+		}
+		if jsonTag == "" {
+			jsonTag = fieldName
+		}
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
+			modified := field.FieldByName("Modified")
+			if modified.IsValid() && modified.Bool() {
+				result = append(result, jsonTag)
+			}
+		}
+	}
+
+	return result
+}
+
 func FindSelectedFields(data any) []string {
 	result := []string{}
 
@@ -44,8 +72,8 @@ func FindSelectedFields(data any) []string {
 			jsonTag = fieldName
 		}
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
-			selectedField := field.FieldByName("Selected")
-			if selectedField.IsValid() && selectedField.Bool() {
+			selected := field.FieldByName("Selected")
+			if selected.IsValid() && selected.Bool() {
 				result = append(result, jsonTag)
 			}
 		}
@@ -118,6 +146,7 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 type Nullable[T any] struct {
 	Data     T
 	Valid    bool
+	Modified bool
 	Selected bool
 }
 
@@ -129,6 +158,7 @@ func (n *Nullable[T]) Set(data T) error {
 	}
 	n.Data = data
 	n.Valid = true
+	n.Modified = true
 	n.Selected = true
 	return nil
 }

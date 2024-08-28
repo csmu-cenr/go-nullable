@@ -156,9 +156,32 @@ func (n *Nullable[T]) Set(data T) error {
 		message := ErrorMessage{Message: `nil pointer`, Attempted: `Set`, Details: data}
 		return message
 	}
-	n.Data = data
+
+	// Compare current data with the new data
+	if !reflect.DeepEqual(n.Data, data) {
+		n.Data = data
+		n.Modified = true
+	}
+
 	n.Valid = true
-	n.Modified = true
+	n.Selected = true
+	return nil
+}
+
+// Set assigns a value as well as selected and valid.
+func (n *Nullable[T]) SetNullable(data Nullable[T]) error {
+	if n == nil {
+		message := ErrorMessage{Message: `nil pointer`, Attempted: `Set`, Details: data}
+		return message
+	}
+
+	// Compare current data with the new data
+	if !reflect.DeepEqual(n.Data, data.Data) {
+		n.Data = data.Data
+		n.Modified = true
+	}
+
+	n.Valid = true
 	n.Selected = true
 	return nil
 }

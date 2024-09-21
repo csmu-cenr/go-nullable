@@ -3,10 +3,10 @@ package nullable
 import "encoding/json"
 
 type ErrorMessage struct {
-	Message   string      `json:"message"`
+	Attempted string      `json:"attemped,omitempty"`
 	Details   interface{} `json:"details,omitempty"`
-	Attempted string      `json:"attemped,c"`
-	Code      int         `json:"code,omitempty"`
+	ErrorNo   int         `json:"errorNo,omitempty"`
+	Message   string      `json:"message"`
 	Stack     []string    `json:"stack,omitempty"`
 }
 

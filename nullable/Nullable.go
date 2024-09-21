@@ -2,9 +2,18 @@ package nullable
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
+)
+
+const (
+	BAD_REQUEST      = `bad request`
+	MODIFY_READ_ONLY = `modify read only`
+	NIL_POINTER      = `nil pointer`
+	SET_DATA         = `set data`
+	SET_NULLABLE     = `set nullable`
 )
 
 func fieldNameIsInFields(fieldName string, fields []string) bool {
@@ -145,21 +154,25 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
 	Data     T
-	Valid    bool
 	Modified bool
+	ReadOnly bool
 	Selected bool
+	Valid    bool
 }
 
-// Set assigns a value as well as selected and valid.
-func (n *Nullable[T]) Set(data T) error {
+// Set assigns a Nullable[model] as well as selected and valid.
+func (n *Nullable[T]) Set(data Nullable[T]) error {
 	if n == nil {
-		message := ErrorMessage{Message: `nil pointer`, Attempted: `Set`, Details: data}
+		message := ErrorMessage{Message: NIL_POINTER, Attempted: SET_NULLABLE, Details: data}
 		return message
 	}
-
+	if n.ReadOnly {
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
+		return m
+	}
 	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data) {
-		n.Data = data
+	if !reflect.DeepEqual(n.Data, data.Data) {
+		n.Data = data.Data
 		n.Modified = true
 	}
 
@@ -168,16 +181,20 @@ func (n *Nullable[T]) Set(data T) error {
 	return nil
 }
 
-// Set assigns a value as well as selected and valid.
-func (n *Nullable[T]) SetNullable(data Nullable[T]) error {
+// SetData assigns a value as well as selected and valid.
+func (n *Nullable[T]) SetData(data T) error {
 	if n == nil {
-		message := ErrorMessage{Message: `nil pointer`, Attempted: `Set`, Details: data}
-		return message
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: NIL_POINTER, Attempted: SET_DATA, Details: data}
+		return m
+	}
+	if n.ReadOnly {
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
+		return m
 	}
 
 	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data.Data) {
-		n.Data = data.Data
+	if !reflect.DeepEqual(n.Data, data) {
+		n.Data = data
 		n.Modified = true
 	}
 
@@ -234,6 +251,11 @@ func (n *Nullable[T]) True() bool {
 	}
 }
 
+// Null Create a Nullable that is NULL with type
+func Null[T any]() Nullable[T] {
+	return Nullable[T]{}
+}
+
 // Value Create a Nullable from a value
 func Value[T any](value T) Nullable[T] {
 	if any(value) == nil {
@@ -250,11 +272,6 @@ func ValueFromPointer[T any](value *T) Nullable[T] {
 	return Value(*value)
 }
 
-// Null Create a Nullable that is NULL with type
-func Null[T any]() Nullable[T] {
-	return Nullable[T]{}
-}
-
 // ValueOrZero Get Value, or default zero value if it is NULL
 func (n Nullable[T]) ValueOrZero() T {
 	if !n.Valid {
@@ -262,6 +279,15 @@ func (n Nullable[T]) ValueOrZero() T {
 		return ref
 	}
 	return n.Data
+}
+
+// IsEmpty is syntactic sugar for IsZero
+func (n Nullable[T]) IsEmpty() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
 }
 
 func (n Nullable[T]) IsZero() bool {
@@ -288,12 +314,12 @@ func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
 }
 
-// String Convert value to string
-func (n Nullable[T]) String() string {
-	return fmt.Sprintf("%s", any(n.Data))
-}
-
 func (n Nullable[T]) GoString() string {
 	var ref T
 	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
+}
+
+// String Convert value to string
+func (n Nullable[T]) String() string {
+	return fmt.Sprintf("%s", any(n.Data))
 }

@@ -19,9 +19,11 @@ const (
 	JSON                                           = `json`
 	NOTHING                                        = ``
 	MODIFY_READ_ONLY                               = `modify read only`
-	MODIFIED                                       = `modified`
+	MODIFIED                                       = `Modified`
 	NIL_POINTER                                    = `nil pointer`
 	READ_ONLY                                      = `read_only`
+	READONLY                                       = `ReadOnly`
+	SELECTED                                       = `Selected`
 	SET_DATA                                       = `set data`
 	SET_NULLABLE                                   = `set nullable`
 	UNEXPECTED_ERROR                               = `unexpected error`
@@ -39,7 +41,7 @@ type Nullable[T any] struct {
 
 func (n Nullable[T]) GoString() string {
 	var ref T
-	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v,ReadOnly:%#v}", ref, n.Data, n.Valid, n.Selected, n.ReadOnly)
 }
 
 // Set assigns a Nullable[model] as well as selected and valid.
@@ -237,11 +239,11 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
 				continue
 			}
-			rightSelected := rightField.FieldByName("Selected").Bool()
+			rightSelected := rightField.FieldByName(SELECTED).Bool()
 
 			if rightSelected {
 				if setRightSelectedFalse {
-					err := SetNullableField(false, "Selected", rightField)
+					err := SetNullableField(false, SELECTED, rightField)
 					if err != nil {
 						message := ErrorMessage{
 							Attempted: `SetValueToNullableField`,
@@ -318,7 +320,7 @@ func FindModifiedFields(data any) []string {
 		if jsonTag == "" {
 			jsonTag = fieldName
 		}
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
 			modified := field.FieldByName("Modified")
 			if modified.IsValid() && modified.Bool() {
 				result = append(result, jsonTag)
@@ -346,9 +348,37 @@ func FindSelectedFields(data any) []string {
 		if jsonTag == "" {
 			jsonTag = fieldName
 		}
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
-			selected := field.FieldByName("Selected")
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
+			selected := field.FieldByName(SELECTED)
 			if selected.IsValid() && selected.Bool() {
+				result = append(result, jsonTag)
+			}
+		}
+	}
+
+	return result
+}
+
+func GetModifiedFieldTags(model any) []string {
+	result := []string{}
+
+	modelValue := reflect.ValueOf(model)
+	modelType := modelValue.Type()
+
+	for i := 0; i < modelValue.NumField(); i++ {
+		field := modelValue.Field(i)
+		structField := modelType.Field(i)
+		fieldName := structField.Name
+		jsonTag := structField.Tag.Get("json")
+		if strings.Contains(jsonTag, ",") {
+			jsonTag = strings.Split(jsonTag, ",")[0]
+		}
+		if jsonTag == "" {
+			jsonTag = fieldName
+		}
+		if field.Kind() == reflect.Struct && hasField(structField.Type, "Modified") {
+			modified := field.FieldByName("Modified")
+			if modified.IsValid() && modified.Bool() {
 				result = append(result, jsonTag)
 			}
 		}
@@ -375,10 +405,10 @@ func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]int
 	return results
 }
 
-func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
+func GetSelectedFields(any interface{}, fields []string) map[string]interface{} {
 	result := make(map[string]interface{})
 
-	val := reflect.ValueOf(v)
+	val := reflect.ValueOf(any)
 	typ := val.Type()
 
 	for i := 0; i < val.NumField(); i++ {
@@ -393,8 +423,8 @@ func GetSelectedFields(v interface{}, fields []string) map[string]interface{} {
 			key = fieldName
 		}
 		fieldNameInFields := fieldNameIsInFields(key, fields)
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, "Selected") {
-			selectedField := field.FieldByName("Selected")
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
+			selectedField := field.FieldByName(SELECTED)
 			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
 				result[key] = field.Interface()
 			}
@@ -476,8 +506,8 @@ func IsSelectedEqual(left, right reflect.Value) bool {
 				continue
 			}
 
-			leftSelected := leftField.FieldByName("Selected").Bool()
-			rightSelected := rightField.FieldByName("Selected").Bool()
+			leftSelected := leftField.FieldByName(SELECTED).Bool()
+			rightSelected := rightField.FieldByName(SELECTED).Bool()
 
 			if leftSelected == rightSelected {
 				leftData := leftField.FieldByName("Data")
@@ -565,7 +595,7 @@ func ModifiedFields(input any) []string {
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
-					modified := value.FieldByName(MODIFIED)
+					modified := value.FieldByName("Modified")
 					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
 						result = append(result, tag)
 					}
@@ -774,7 +804,7 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 		}
 		if IsNullable(modifiyField) {
 			if modifiyField.IsValid() && baseField.IsValid() {
-				modifySelectedField := modifiyField.FieldByName("Selected")
+				modifySelectedField := modifiyField.FieldByName(SELECTED)
 				if !(modifySelectedField.IsValid() || modifySelectedField.CanInterface()) {
 					continue
 				}
@@ -854,7 +884,7 @@ func SetModifiedIfSelected(model any) error {
 			continue
 		}
 
-		selected := field.FieldByName("Selected")
+		selected := field.FieldByName(SELECTED)
 		modified := field.FieldByName("Modified")
 
 		// Ensure fields are valid and settable
@@ -906,7 +936,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 			return fmt.Errorf("value type %s does not match field type %s", val.Type(), field.Type())
 		}
 		field.Set(val)
-	case "Valid", "Selected", "Modified":
+	case "Valid", SELECTED, "Modified":
 		if val.Kind() != reflect.Bool {
 			return fmt.Errorf("value type %s does not match field type bool", val.Kind())
 		}

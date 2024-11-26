@@ -10,19 +10,22 @@ import (
 )
 
 const (
-	BAD_REQUEST               = `bad request`
-	COMMA                     = `,`
-	LEFT_SQUARE_BRACKET       = `[`
-	JSON                      = `json`
-	NOTHING                   = ``
-	MODIFY_READ_ONLY          = `modify read only`
-	MODIFIED                  = `modified`
-	NIL_POINTER               = `nil pointer`
-	READONLY                  = `read_only`
-	SET_DATA                  = `set data`
-	SET_NULLABLE              = `set nullable`
-	UNEXPECTED_ERROR          = `unexpected error`
-	VARIABLE_MUST_BE_A_STRUCT = `variable must be a struct`
+	BAD_REQUEST                                    = `bad request`
+	COMMA                                          = `,`
+	LEFT_SQUARE_BRACKET                            = `[`
+	LEFT_AND_RIGHT_MUST_BE_STRUCTS                 = `left and right must be structs`
+	LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS    = `left and right must have qual no of fields`
+	LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL = `left and right name, type and tag must be equal`
+	JSON                                           = `json`
+	NOTHING                                        = ``
+	MODIFY_READ_ONLY                               = `modify read only`
+	MODIFIED                                       = `modified`
+	NIL_POINTER                                    = `nil pointer`
+	READ_ONLY                                      = `read_only`
+	SET_DATA                                       = `set data`
+	SET_NULLABLE                                   = `set nullable`
+	UNEXPECTED_ERROR                               = `unexpected error`
+	VARIABLE_MUST_BE_A_STRUCT                      = `variable must be a struct`
 )
 
 // Nullable represents data that also can be NULL
@@ -32,6 +35,149 @@ type Nullable[T any] struct {
 	ReadOnly bool
 	Selected bool
 	Valid    bool
+}
+
+func (n Nullable[T]) GoString() string {
+	var ref T
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
+}
+
+// Set assigns a Nullable[model] as well as selected and valid.
+func (n *Nullable[T]) Set(data Nullable[T]) error {
+	if n == nil {
+		message := ErrorMessage{Message: NIL_POINTER, Attempted: SET_NULLABLE, Details: data}
+		return message
+	}
+	if n.ReadOnly {
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
+		return m
+	}
+	// Compare current data with the new data
+	if !reflect.DeepEqual(n.Data, data.Data) {
+		n.Data = data.Data
+		n.Modified = true
+	}
+
+	n.Valid = true
+	n.Selected = true
+	return nil
+}
+
+// SetData assigns a value as well as selected and valid.
+func (n *Nullable[T]) SetData(data T) error {
+	if n == nil {
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: NIL_POINTER, Attempted: SET_DATA, Details: data}
+		return m
+	}
+	if n.ReadOnly {
+		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
+		return m
+	}
+
+	// Compare current data with the new data
+	if !reflect.DeepEqual(n.Data, data) {
+		n.Data = data
+		n.Modified = true
+	}
+
+	n.Valid = true
+	n.Selected = true
+	return nil
+}
+
+// True returns whether or not the data is true.
+func (n *Nullable[T]) True() bool {
+	if n == nil {
+		return false
+	}
+
+	switch data := any(n.Data).(type) {
+	case string:
+		switch data {
+		case "true", "yes", "y":
+			return true
+		case "TRUE", "YES", "Y":
+			return true
+		default:
+			return false
+		}
+	case float32:
+		if data == 1 {
+			return true
+		}
+		return false
+	case float64:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int32:
+		if data == 1 {
+			return true
+		}
+		return false
+	case int64:
+		if data == 1 {
+			return true
+		}
+		return false
+	case bool:
+		return data
+	default:
+		return false
+	}
+}
+
+// ValueOrZero Get Value, or default zero value if it is NULL
+func (n Nullable[T]) ValueOrZero() T {
+	if !n.Valid {
+		var ref T
+		return ref
+	}
+	return n.Data
+}
+
+// IsEmpty is syntactic sugar for IsZero
+func (n Nullable[T]) IsEmpty() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
+}
+
+func (n Nullable[T]) IsZero() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
+}
+
+// Equal Check if this Nullable is equal to another Nullable
+func (n Nullable[T]) Equal(other Nullable[T]) bool {
+	switch any(n.Data).(type) {
+	case time.Time:
+		nValue := any(n.Data).(time.Time)
+		otherValue := any(other.Data).(time.Time)
+		return n.Valid == other.Valid && (!n.Valid || nValue.Equal(otherValue))
+	}
+	return n.ExactEqual(other)
+}
+
+// ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
+func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
+	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
+}
+
+// String Convert value to string
+func (n Nullable[T]) String() string {
+	return fmt.Sprintf("%s", any(n.Data))
 }
 
 // CopyLeftToRight
@@ -49,7 +195,13 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 
 	// Ensure both left and right are structs
 	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
-		return errors.New("left and right must be structs")
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
+			ErrorNo:  http.StatusBadRequest,
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
 	}
 
 	leftType := left.Type()
@@ -279,6 +431,68 @@ func hasField(typ reflect.Type, fieldName string) bool {
 	return false
 }
 
+// IsSelectedEqual checks all the selected Nullable fields in the left instance against the right object
+func IsSelectedEqual(left, right reflect.Value) bool {
+
+	//functionName := `IsSelectedEqual`
+
+	// Dereference pointers if necessary
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
+	}
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
+		return false
+	}
+
+	leftType := left.Type()
+	rightTyoe := right.Type()
+	for i := 0; i < left.NumField(); i++ {
+
+		leftFieldType := leftType.Field(i)
+		rightFieldType := rightTyoe.Field(i)
+		if strings.EqualFold(leftFieldType.Name, rightFieldType.Name) {
+			return false
+		}
+
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
+		}
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
+		}
+
+		if IsNullable(leftField) && IsNullable(rightField) {
+
+			// Ensure both fields are structs
+			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
+				continue
+			}
+
+			leftSelected := leftField.FieldByName("Selected").Bool()
+			rightSelected := rightField.FieldByName("Selected").Bool()
+
+			if leftSelected == rightSelected {
+				leftData := leftField.FieldByName("Data")
+				rightData := leftField.FieldByName("Data")
+				equal := reflect.DeepEqual(leftData, rightData)
+				if !equal {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
+}
+
 // IsNullable
 func IsNullable(model reflect.Value) bool {
 	name := strings.Split(model.Type().Name(), LEFT_SQUARE_BRACKET)[0]
@@ -347,7 +561,7 @@ func ModifiedFields(input any) []string {
 
 			if value.Type().Kind() == reflect.Struct {
 				if IsNullable(value) {
-					readOnly := value.FieldByName(READONLY)
+					readOnly := value.FieldByName(READ_ONLY)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
@@ -499,6 +713,116 @@ func SetModifiedBooleanFields(instance reflect.Value, fields []string, target bo
 	return setBooleanFields(instance, fields, `Modified`, target, not)
 }
 
+// SetModifiedIfDifferent sets any field in the left struct to modified if different from the right
+func SetModifiedIfDifferent(modify, base reflect.Value) error {
+
+	functionName := `CopyLeftToRight`
+
+	// Dereference pointers if necessary
+	if modify.Kind() == reflect.Ptr {
+		modify = modify.Elem()
+	}
+	if base.Kind() == reflect.Ptr {
+		base = base.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if modify.Kind() != reflect.Struct || base.Kind() != reflect.Struct {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
+			ErrorNo:  http.StatusBadRequest,
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
+	}
+
+	if modify.NumField() != base.NumField() {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS,
+			ErrorNo:  http.StatusBadRequest,
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
+	}
+
+	modifyType := modify.Type()
+	baseType := base.Type()
+
+	for i := 0; i < modify.NumField(); i++ {
+
+		modifyTypeField := modifyType.Field(i)
+		baseTypeField := baseType.Field(i)
+		if !strings.EqualFold(modifyTypeField.Name, baseTypeField.Name) && modifyTypeField.Type != baseTypeField.Type && modifyTypeField.Tag != baseTypeField.Tag {
+			m := ErrorMessage{
+				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
+				ErrorNo:  http.StatusBadRequest,
+				Function: functionName,
+				Message:  BAD_REQUEST,
+			}
+			return m
+		}
+		modifiyField := modify.Field(i)
+		baseField := base.Field(i)
+
+		if modifiyField.Kind() == reflect.Ptr {
+			modifiyField = modifiyField.Elem()
+		}
+		if baseField.Kind() == reflect.Ptr {
+			baseField = baseField.Elem()
+		}
+		if IsNullable(modifiyField) {
+			if modifiyField.IsValid() && baseField.IsValid() {
+				modifySelectedField := modifiyField.FieldByName("Selected")
+				if !(modifySelectedField.IsValid() || modifySelectedField.CanInterface()) {
+					continue
+				}
+				modifySelected := modifySelectedField.Bool()
+				if modifySelected {
+					modifyReadOnlyField := modifiyField.FieldByName("ReadOnly")
+					if !(modifyReadOnlyField.IsValid() || modifyReadOnlyField.CanInterface()) {
+						continue
+					}
+					modifyReadOnly := modifyReadOnlyField.Bool()
+					if modifyReadOnly {
+						continue
+					}
+					modifyData := modifiyField.FieldByName("Data")
+					if !(modifyData.IsValid() || modifyData.CanInterface()) {
+						continue
+					}
+					baseData := baseField.FieldByName("Data")
+					if !(baseData.IsValid() || baseData.CanInterface()) {
+						continue
+					}
+					if !reflect.DeepEqual(modifyData, baseData) {
+						baseModified := baseField.FieldByName("Modified")
+						if !(baseModified.IsValid() || baseModified.CanInterface()) {
+							continue
+						}
+						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
+							err := SetNullableField(true, `Modified`, baseModified)
+							if err != nil {
+								m := ErrorMessage{
+									Attempted: `SetNullableField`,
+									Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, modifyType.Name(), err),
+									ErrorNo:   http.StatusInternalServerError,
+									Function:  functionName,
+									Message:   UNEXPECTED_ERROR,
+								}
+								return m
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetModifiedIfSelected is used for data that
 // is unmarshalled but needs to be saved.
 func SetModifiedIfSelected(model any) error {
@@ -596,7 +920,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 
 // SetReadOnlyBooleanFields calls SetBooleanFields with "ReadOnly" as the field name
 func SetReadOnlyBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
-	return setBooleanFields(instance, fields, READONLY, target, not)
+	return setBooleanFields(instance, fields, READ_ONLY, target, not)
 }
 
 // setReflectValueFromToField sets the value from the `from` struct to the `to` struct for the specified field.
@@ -641,97 +965,6 @@ func SetSelectedBooleanFields(instance reflect.Value, fields []string, target bo
 	return setBooleanFields(instance, fields, `Selected`, target, not)
 }
 
-// Set assigns a Nullable[model] as well as selected and valid.
-func (n *Nullable[T]) Set(data Nullable[T]) error {
-	if n == nil {
-		message := ErrorMessage{Message: NIL_POINTER, Attempted: SET_NULLABLE, Details: data}
-		return message
-	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
-		return m
-	}
-	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data.Data) {
-		n.Data = data.Data
-		n.Modified = true
-	}
-
-	n.Valid = true
-	n.Selected = true
-	return nil
-}
-
-// SetData assigns a value as well as selected and valid.
-func (n *Nullable[T]) SetData(data T) error {
-	if n == nil {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: NIL_POINTER, Attempted: SET_DATA, Details: data}
-		return m
-	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
-		return m
-	}
-
-	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data) {
-		n.Data = data
-		n.Modified = true
-	}
-
-	n.Valid = true
-	n.Selected = true
-	return nil
-}
-
-// True returns whether or not the data is true.
-func (n *Nullable[T]) True() bool {
-	if n == nil {
-		return false
-	}
-
-	switch data := any(n.Data).(type) {
-	case string:
-		switch data {
-		case "true", "yes", "y":
-			return true
-		case "TRUE", "YES", "Y":
-			return true
-		default:
-			return false
-		}
-	case float32:
-		if data == 1 {
-			return true
-		}
-		return false
-	case float64:
-		if data == 1 {
-			return true
-		}
-		return false
-	case int:
-		if data == 1 {
-			return true
-		}
-		return false
-	case int32:
-		if data == 1 {
-			return true
-		}
-		return false
-	case int64:
-		if data == 1 {
-			return true
-		}
-		return false
-	case bool:
-		return data
-	default:
-		return false
-	}
-}
-
 // Null Create a Nullable that is NULL with type
 func Null[T any]() Nullable[T] {
 	return Nullable[T]{}
@@ -751,56 +984,4 @@ func ValueFromPointer[T any](value *T) Nullable[T] {
 		return Nullable[T]{Valid: false, Selected: true}
 	}
 	return Value(*value)
-}
-
-// ValueOrZero Get Value, or default zero value if it is NULL
-func (n Nullable[T]) ValueOrZero() T {
-	if !n.Valid {
-		var ref T
-		return ref
-	}
-	return n.Data
-}
-
-// IsEmpty is syntactic sugar for IsZero
-func (n Nullable[T]) IsEmpty() bool {
-	if !n.Valid {
-		return true
-	}
-	var ref T
-	return any(ref) == any(n.Data)
-}
-
-func (n Nullable[T]) IsZero() bool {
-	if !n.Valid {
-		return true
-	}
-	var ref T
-	return any(ref) == any(n.Data)
-}
-
-// Equal Check if this Nullable is equal to another Nullable
-func (n Nullable[T]) Equal(other Nullable[T]) bool {
-	switch any(n.Data).(type) {
-	case time.Time:
-		nValue := any(n.Data).(time.Time)
-		otherValue := any(other.Data).(time.Time)
-		return n.Valid == other.Valid && (!n.Valid || nValue.Equal(otherValue))
-	}
-	return n.ExactEqual(other)
-}
-
-// ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
-func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
-	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
-}
-
-func (n Nullable[T]) GoString() string {
-	var ref T
-	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
-}
-
-// String Convert value to string
-func (n Nullable[T]) String() string {
-	return fmt.Sprintf("%s", any(n.Data))
 }

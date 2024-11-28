@@ -359,34 +359,6 @@ func FindSelectedFields(data any) []string {
 	return result
 }
 
-func GetModifiedFieldTags(model any) []string {
-	result := []string{}
-
-	modelValue := reflect.ValueOf(model)
-	modelType := modelValue.Type()
-
-	for i := 0; i < modelValue.NumField(); i++ {
-		field := modelValue.Field(i)
-		structField := modelType.Field(i)
-		fieldName := structField.Name
-		jsonTag := structField.Tag.Get("json")
-		if strings.Contains(jsonTag, ",") {
-			jsonTag = strings.Split(jsonTag, ",")[0]
-		}
-		if jsonTag == "" {
-			jsonTag = fieldName
-		}
-		if field.Kind() == reflect.Struct && hasField(structField.Type, "Modified") {
-			modified := field.FieldByName("Modified")
-			if modified.IsValid() && modified.Bool() {
-				result = append(result, jsonTag)
-			}
-		}
-	}
-
-	return result
-}
-
 func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]interface{} {
 	var results []map[string]interface{}
 
@@ -561,8 +533,8 @@ func Modified(model any) bool {
 	return false
 }
 
-// ModifiedFields returns all nullable Null structs that are modified
-func ModifiedFields(input any) []string {
+// GetModifiedTags returns all nullable Null structs that are modified
+func GetModifiedTags(input any) []string {
 
 	result := []string{}
 
@@ -608,8 +580,8 @@ func ModifiedFields(input any) []string {
 	return result
 }
 
-// SelectedFields is a generic function to get JSON tags of selected Nullable fields
-func SelectedFields[T any](input T, includeNonNullable bool) []string {
+// GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
+func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 	var fields []string
 
 	inputValue := reflect.ValueOf(input)
@@ -746,7 +718,7 @@ func SetModifiedBooleanFields(instance reflect.Value, fields []string, target bo
 // SetModifiedIfDifferent sets any field in the left struct to modified if different from the right
 func SetModifiedIfDifferent(modify, base reflect.Value) error {
 
-	functionName := `CopyLeftToRight`
+	functionName := `nullable.SetModifiedIfDifferent`
 
 	// Dereference pointers if necessary
 	if modify.Kind() == reflect.Ptr {
@@ -832,14 +804,14 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 							continue
 						}
 						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
-							err := SetNullableField(true, `Modified`, baseModified)
+							err := SetNullableField(true, `Modified`, baseField)
 							if err != nil {
 								m := ErrorMessage{
-									Attempted: `SetNullableField`,
+									Attempted: `nullable.SetNullableField`,
 									Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, modifyType.Name(), err),
-									ErrorNo:   http.StatusInternalServerError,
+									ErrorNo:   http.StatusBadRequest,
 									Function:  functionName,
-									Message:   UNEXPECTED_ERROR,
+									Message:   BAD_REQUEST,
 								}
 								return m
 							}
@@ -936,7 +908,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 			return fmt.Errorf("value type %s does not match field type %s", val.Type(), field.Type())
 		}
 		field.Set(val)
-	case "Valid", SELECTED, "Modified":
+	case "Valid", "Selected", "Modified":
 		if val.Kind() != reflect.Bool {
 			return fmt.Errorf("value type %s does not match field type bool", val.Kind())
 		}

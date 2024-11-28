@@ -756,7 +756,7 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 
 		modifyTypeField := modifyType.Field(i)
 		baseTypeField := baseType.Field(i)
-		if !strings.EqualFold(modifyTypeField.Name, baseTypeField.Name) && modifyTypeField.Type != baseTypeField.Type && modifyTypeField.Tag != baseTypeField.Tag {
+		if modifyTypeField.Name != baseTypeField.Name && modifyTypeField.Type != baseTypeField.Type && modifyTypeField.Tag != baseTypeField.Tag {
 			m := ErrorMessage{
 				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
 				ErrorNo:  http.StatusBadRequest,
@@ -765,24 +765,24 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 			}
 			return m
 		}
-		modifiyField := modify.Field(i)
+		modifyField := modify.Field(i)
 		baseField := base.Field(i)
 
-		if modifiyField.Kind() == reflect.Ptr {
-			modifiyField = modifiyField.Elem()
+		if modifyField.Kind() == reflect.Ptr {
+			modifyField = modifyField.Elem()
 		}
 		if baseField.Kind() == reflect.Ptr {
 			baseField = baseField.Elem()
 		}
-		if IsNullable(modifiyField) {
-			if modifiyField.IsValid() && baseField.IsValid() {
-				modifySelectedField := modifiyField.FieldByName(SELECTED)
+		if IsNullable(modifyField) {
+			if modifyField.IsValid() && baseField.IsValid() {
+				modifySelectedField := modifyField.FieldByName(SELECTED)
 				if !(modifySelectedField.IsValid() || modifySelectedField.CanInterface()) {
 					continue
 				}
 				modifySelected := modifySelectedField.Bool()
 				if modifySelected {
-					modifyReadOnlyField := modifiyField.FieldByName("ReadOnly")
+					modifyReadOnlyField := modifyField.FieldByName("ReadOnly")
 					if !(modifyReadOnlyField.IsValid() || modifyReadOnlyField.CanInterface()) {
 						continue
 					}
@@ -790,7 +790,7 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 					if modifyReadOnly {
 						continue
 					}
-					modifyData := modifiyField.FieldByName("Data")
+					modifyData := modifyField.FieldByName("Data")
 					if !(modifyData.IsValid() || modifyData.CanInterface()) {
 						continue
 					}

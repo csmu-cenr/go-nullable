@@ -628,11 +628,13 @@ func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 }
 
 // setBooleanFields sets every field in fields to the target, all others are set to not the target.
-func setBooleanFields(instance reflect.Value, fields []string, fieldName string, target bool, not bool) error {
-	functionName := `SetNullableBooleanFields`
+func setBooleanFields(instance reflect.Value, tags []string, fieldName string, target bool, not bool) error {
+
+	functionName := `SetBooleanFields`
+
 	var err error
 
-	if len(fields) == 0 {
+	if len(tags) == 0 {
 		return nil
 	}
 
@@ -674,7 +676,7 @@ func setBooleanFields(instance reflect.Value, fields []string, fieldName string,
 			continue
 		}
 
-		process = FieldsContainsName(fields, tag)
+		process = FieldsContainsName(tags, tag)
 		value = instanceField.FieldByName(fieldName).Bool()
 
 		if process {
@@ -783,7 +785,7 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 				modifySelected := modifySelectedField.Bool()
 				if modifySelected {
 					modifyReadOnlyField := modifyField.FieldByName("ReadOnly")
-					if !(modifyReadOnlyField.IsValid() || modifyReadOnlyField.CanInterface()) {
+					if !(modifyReadOnlyField.IsValid() && modifyReadOnlyField.CanInterface()) {
 						continue
 					}
 					modifyReadOnly := modifyReadOnlyField.Bool()
@@ -791,20 +793,20 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 						continue
 					}
 					modifyData := modifyField.FieldByName("Data")
-					if !(modifyData.IsValid() || modifyData.CanInterface()) {
+					if !(modifyData.IsValid() && modifyData.CanInterface()) {
 						continue
 					}
 					baseData := baseField.FieldByName("Data")
-					if !(baseData.IsValid() || baseData.CanInterface()) {
+					if !(baseData.IsValid() && baseData.CanInterface()) {
 						continue
 					}
-					if !reflect.DeepEqual(modifyData, baseData) {
+					if !reflect.DeepEqual(modifyData.Interface(), baseData.Interface()) {
 						baseModified := baseField.FieldByName("Modified")
 						if !(baseModified.IsValid() || baseModified.CanInterface()) {
 							continue
 						}
 						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
-							err := SetNullableField(true, `Modified`, baseField)
+							err := SetNullableField(true, `Modified`, modifyField)
 							if err != nil {
 								m := ErrorMessage{
 									Attempted: `nullable.SetNullableField`,

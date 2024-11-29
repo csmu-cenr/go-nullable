@@ -39,9 +39,42 @@ type Nullable[T any] struct {
 	Valid    bool
 }
 
+// DoesNotEqual is the opposite of Equal
+func (n Nullable[T]) DoesNotEqual(other Nullable[T]) bool {
+	return !n.Equal(other)
+}
+
 func (n Nullable[T]) GoString() string {
 	var ref T
 	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v,ReadOnly:%#v}", ref, n.Data, n.Valid, n.Selected, n.ReadOnly)
+}
+
+// IsEmpty is syntactic sugar for IsZero
+func (n Nullable[T]) IsEmpty() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
+}
+
+// IsNotEmpty is syntactic sugar for IsNotZero
+func (n Nullable[T]) IsNotEmpty() bool {
+	return !n.IsEmpty()
+}
+
+// IsZero
+func (n Nullable[T]) IsZero() bool {
+	if !n.Valid {
+		return true
+	}
+	var ref T
+	return any(ref) == any(n.Data)
+}
+
+// IsNotZero
+func (n Nullable[T]) IsNotZero() bool {
+	return !n.IsZero()
 }
 
 // Set assigns a Nullable[model] as well as selected and valid.
@@ -144,21 +177,9 @@ func (n Nullable[T]) ValueOrZero() T {
 	return n.Data
 }
 
-// IsEmpty is syntactic sugar for IsZero
-func (n Nullable[T]) IsEmpty() bool {
-	if !n.Valid {
-		return true
-	}
-	var ref T
-	return any(ref) == any(n.Data)
-}
-
-func (n Nullable[T]) IsZero() bool {
-	if !n.Valid {
-		return true
-	}
-	var ref T
-	return any(ref) == any(n.Data)
+// String Convert value to string
+func (n Nullable[T]) String() string {
+	return fmt.Sprintf("%s", any(n.Data))
 }
 
 // Equal Check if this Nullable is equal to another Nullable
@@ -175,11 +196,6 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 // ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
 func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
-}
-
-// String Convert value to string
-func (n Nullable[T]) String() string {
-	return fmt.Sprintf("%s", any(n.Data))
 }
 
 // CopyLeftToRight
@@ -359,6 +375,100 @@ func FindSelectedFields(data any) []string {
 	return result
 }
 
+// GetModifiedTags returns all nullable Null structs that are modified
+func GetModifiedTags(input any) []string {
+
+	result := []string{}
+
+	inputValue := reflect.ValueOf(input)
+	if inputValue.Kind() == reflect.Ptr {
+		inputValue = inputValue.Elem()
+	}
+
+	if inputValue.Kind() == reflect.Struct {
+
+		inputType := reflect.TypeOf(input)
+		if inputType.Kind() == reflect.Ptr {
+			inputType = inputType.Elem()
+		}
+
+		var tag string
+		for i := 0; i < inputValue.NumField(); i++ {
+
+			field := inputType.Field(i)
+			value := inputValue.Field(i)
+
+			tag = getTag(field)
+			if tag == NOTHING {
+				tag = field.Name
+			}
+
+			if value.Type().Kind() == reflect.Struct {
+				if IsNullable(value) {
+					readOnly := value.FieldByName(READ_ONLY)
+					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
+						continue
+					}
+					modified := value.FieldByName("Modified")
+					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
+						result = append(result, tag)
+					}
+				}
+			}
+
+		}
+	}
+
+	return result
+}
+
+// GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
+func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
+	var fields []string
+
+	inputValue := reflect.ValueOf(input)
+	if inputValue.Kind() == reflect.Ptr {
+		inputValue = inputValue.Elem()
+	}
+
+	if inputValue.Kind() == reflect.Struct {
+
+		inputType := reflect.TypeOf(input)
+		if inputType.Kind() == reflect.Ptr {
+			inputType = inputType.Elem()
+		}
+
+		tag := NOTHING
+		for i := 0; i < inputValue.NumField(); i++ {
+
+			field := inputType.Field(i)
+			value := inputValue.Field(i)
+
+			tag = getTag(field)
+			if tag == NOTHING {
+				tag = field.Name
+			}
+
+			if value.Type().Kind() == reflect.Struct {
+				if IsNullable(value) {
+					selected := value.FieldByName(`Selected`)
+					if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
+						fields = append(fields, tag)
+					}
+				} else if includeNonNullable {
+					fields = append(fields, tag)
+				}
+			} else if includeNonNullable {
+				fields = append(fields, tag)
+			}
+
+		}
+
+	}
+
+	return fields
+}
+
 func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]interface{} {
 	var results []map[string]interface{}
 
@@ -533,98 +643,9 @@ func Modified(model any) bool {
 	return false
 }
 
-// GetModifiedTags returns all nullable Null structs that are modified
-func GetModifiedTags(input any) []string {
-
-	result := []string{}
-
-	inputValue := reflect.ValueOf(input)
-	if inputValue.Kind() == reflect.Ptr {
-		inputValue = inputValue.Elem()
-	}
-
-	if inputValue.Kind() == reflect.Struct {
-
-		inputType := reflect.TypeOf(input)
-		if inputType.Kind() == reflect.Ptr {
-			inputType = inputType.Elem()
-		}
-
-		var tag string
-		for i := 0; i < inputValue.NumField(); i++ {
-
-			field := inputType.Field(i)
-			value := inputValue.Field(i)
-
-			tag = getTag(field)
-			if tag == NOTHING {
-				tag = field.Name
-			}
-
-			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
-					readOnly := value.FieldByName(READ_ONLY)
-					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
-						continue
-					}
-					modified := value.FieldByName("Modified")
-					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
-						result = append(result, tag)
-					}
-				}
-			}
-
-		}
-	}
-
-	return result
-}
-
-// GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
-func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
-	var fields []string
-
-	inputValue := reflect.ValueOf(input)
-	if inputValue.Kind() == reflect.Ptr {
-		inputValue = inputValue.Elem()
-	}
-
-	if inputValue.Kind() == reflect.Struct {
-
-		inputType := reflect.TypeOf(input)
-		if inputType.Kind() == reflect.Ptr {
-			inputType = inputType.Elem()
-		}
-
-		tag := NOTHING
-		for i := 0; i < inputValue.NumField(); i++ {
-
-			field := inputType.Field(i)
-			value := inputValue.Field(i)
-
-			tag = getTag(field)
-			if tag == NOTHING {
-				tag = field.Name
-			}
-
-			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
-					selected := value.FieldByName(`Selected`)
-					if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
-						fields = append(fields, tag)
-					}
-				} else if includeNonNullable {
-					fields = append(fields, tag)
-				}
-			} else if includeNonNullable {
-				fields = append(fields, tag)
-			}
-
-		}
-
-	}
-
-	return fields
+// Null Create a Nullable that is NULL with type
+func Null[T any]() Nullable[T] {
+	return Nullable[T]{}
 }
 
 // setBooleanFields sets every field in fields to the target, all others are set to not the target.
@@ -967,11 +988,6 @@ func setReflectValueFromToField(from, to reflect.Value, field string) error {
 // SetSelectedBooleanFields calls SetBooleanFields with "Selected" as the field name
 func SetSelectedBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
 	return setBooleanFields(instance, fields, `Selected`, target, not)
-}
-
-// Null Create a Nullable that is NULL with type
-func Null[T any]() Nullable[T] {
-	return Nullable[T]{}
 }
 
 // Value Create a Nullable from a value

@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	ANNOTATIONS                                    = `annotations`
 	BAD_REQUEST                                    = `bad request`
 	COMMA                                          = `,`
 	LEFT_SQUARE_BRACKET                            = `[`
@@ -21,7 +22,8 @@ const (
 	MODIFY_READ_ONLY                               = `modify read only`
 	MODIFIED                                       = `Modified`
 	NIL_POINTER                                    = `nil pointer`
-	READ_ONLY                                      = `read_only`
+	readonly                                       = `readonly`
+	read_only                                      = `read_only`
 	READONLY                                       = `ReadOnly`
 	SELECTED                                       = `Selected`
 	SET_DATA                                       = `set data`
@@ -196,6 +198,15 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 // ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
 func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
+}
+
+// checkStructForTagValue checks if a field in the struct has a specific value in its `annotation` tag.
+func checkFieldForTagValue(field reflect.StructField, tagName, tagValue string) (bool, error) {
+	tag := field.Tag.Get(tagName)
+	if tagContainsValue(tag, tagValue) {
+		return true, nil
+	}
+	return false, nil
 }
 
 // CopyLeftToRight
@@ -398,14 +409,14 @@ func GetModifiedTags(input any) []string {
 			field := inputType.Field(i)
 			value := inputValue.Field(i)
 
-			tag = getTag(field)
+			tag = getJsonTag(field)
 			if tag == NOTHING {
 				tag = field.Name
 			}
 
 			if value.Type().Kind() == reflect.Struct {
 				if IsNullable(value) {
-					readOnly := value.FieldByName(READ_ONLY)
+					readOnly := value.FieldByName(READONLY)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
@@ -420,6 +431,62 @@ func GetModifiedTags(input any) []string {
 	}
 
 	return result
+}
+
+// GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
+func GetReadOnlyTags[T any](input T, includeNonNullable bool) []string {
+	var fields []string
+
+	inputValue := reflect.ValueOf(input)
+	if inputValue.Kind() == reflect.Ptr {
+		inputValue = inputValue.Elem()
+	}
+
+	if inputValue.Kind() == reflect.Struct {
+
+		inputType := reflect.TypeOf(input)
+		if inputType.Kind() == reflect.Ptr {
+			inputType = inputType.Elem()
+		}
+
+		tag := NOTHING
+		for i := 0; i < inputValue.NumField(); i++ {
+
+			field := inputType.Field(i)
+			value := inputValue.Field(i)
+
+			tag = getJsonTag(field)
+			if tag == NOTHING {
+				tag = field.Name
+			}
+			readonlyAnnotation, err := checkFieldForTagValue(field, ANNOTATIONS, readonly)
+			if err != nil {
+				readonlyAnnotation = false
+			}
+
+			if value.Type().Kind() == reflect.Struct {
+				if IsNullable(value) {
+					readOnly := value.FieldByName(`ReadOnly`)
+					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && (readOnly.Bool() || readonlyAnnotation) {
+						fields = append(fields, tag)
+					}
+					if readonlyAnnotation && !readOnly.Bool() && readOnly.Kind() == reflect.Bool {
+						if readOnly.CanSet() {
+							readOnly.SetBool(readonlyAnnotation)
+						}
+					}
+				} else if includeNonNullable {
+					fields = append(fields, tag)
+				}
+			} else if includeNonNullable {
+				fields = append(fields, tag)
+			}
+
+		}
+
+	}
+
+	return fields
 }
 
 // GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
@@ -444,7 +511,7 @@ func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 			field := inputType.Field(i)
 			value := inputValue.Field(i)
 
-			tag = getTag(field)
+			tag = getJsonTag(field)
 			if tag == NOTHING {
 				tag = field.Name
 			}
@@ -529,7 +596,7 @@ func GetSelectedFields(any interface{}, fields []string) map[string]interface{} 
 	return result
 }
 
-func getTag(field reflect.StructField) string {
+func getJsonTag(field reflect.StructField) string {
 	return strings.Split(field.Tag.Get(JSON), COMMA)[0]
 }
 
@@ -648,6 +715,81 @@ func Null[T any]() Nullable[T] {
 	return Nullable[T]{}
 }
 
+func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string) error {
+
+	functionName := `nullable.SetAnnotatedReadOnlyFields`
+
+	// Dereference pointers if necessary
+	if instance.Kind() == reflect.Ptr {
+		instance = instance.Elem()
+	}
+
+	// Ensure instance is a struct
+	if instance.Kind() != reflect.Struct {
+		m := ErrorMessage{
+			Details:  VARIABLE_MUST_BE_A_STRUCT,
+			ErrorNo:  http.StatusBadRequest,
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
+	}
+
+	if tagName == NOTHING {
+		tagName = ANNOTATIONS
+	}
+
+	if tagValue == NOTHING {
+		tagValue = readonly
+	}
+
+	instanceType := instance.Type()
+
+	for i := 0; i < instance.NumField(); i++ {
+
+		structField := instanceType.Field(i)
+
+		nullableField := instance.Field(i)
+		if nullableField.Kind() == reflect.Ptr {
+			nullableField = nullableField.Elem()
+		}
+		if nullableField.Kind() != reflect.Struct {
+			continue
+		}
+		if !IsNullable(nullableField) {
+			continue
+		}
+
+		found, err := checkFieldForTagValue(structField, ANNOTATIONS, readonly)
+		if err != nil {
+			m := ErrorMessage{
+				Attempted:  `checkFieldForTagValue`,
+				Details:    VARIABLE_MUST_BE_A_STRUCT,
+				ErrorNo:    http.StatusInternalServerError,
+				InnerError: err,
+				Function:   functionName,
+				Message:    UNEXPECTED_ERROR,
+			}
+			return m
+		}
+
+		if !found {
+			continue
+		}
+
+		reflectValue := instance.Field(i)
+
+		readOnly := reflectValue.FieldByName(READONLY)
+		if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.CanSet() && !readOnly.Bool() {
+			readOnly.SetBool(true)
+		}
+
+	}
+
+	return nil
+
+}
+
 // setBooleanFields sets every field in fields to the target, all others are set to not the target.
 func setBooleanFields(instance reflect.Value, tags []string, fieldName string, target bool, not bool) error {
 
@@ -686,24 +828,24 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 			tag = field.Name
 		}
 
-		instanceField := instance.Field(i)
-		if instanceField.Kind() == reflect.Ptr {
-			instanceField = instanceField.Elem()
+		nullableField := instance.Field(i)
+		if nullableField.Kind() == reflect.Ptr {
+			nullableField = nullableField.Elem()
 		}
-		if instanceField.Kind() != reflect.Struct {
+		if nullableField.Kind() != reflect.Struct {
 			continue
 		}
-		if !IsNullable(instanceField) {
+		if !IsNullable(nullableField) {
 			continue
 		}
 
 		process = FieldsContainsName(tags, tag)
-		value = instanceField.FieldByName(fieldName).Bool()
+		value = nullableField.FieldByName(fieldName).Bool()
 
 		if process {
 			switch {
 			case value != target: // 0
-				err = SetNullableField(target, fieldName, instanceField)
+				err = SetNullableField(target, fieldName, nullableField)
 			default: // 1
 				continue
 			}
@@ -714,7 +856,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 			case value != target: // 0
 				continue
 			default: // 1
-				err = SetNullableField(!target, fieldName, instanceField)
+				err = SetNullableField(!target, fieldName, nullableField)
 			}
 		}
 
@@ -945,7 +1087,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 
 // SetReadOnlyBooleanFields calls SetBooleanFields with "ReadOnly" as the field name
 func SetReadOnlyBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
-	return setBooleanFields(instance, fields, READ_ONLY, target, not)
+	return setBooleanFields(instance, fields, read_only, target, not)
 }
 
 // setReflectValueFromToField sets the value from the `from` struct to the `to` struct for the specified field.
@@ -988,6 +1130,17 @@ func setReflectValueFromToField(from, to reflect.Value, field string) error {
 // SetSelectedBooleanFields calls SetBooleanFields with "Selected" as the field name
 func SetSelectedBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
 	return setBooleanFields(instance, fields, `Selected`, target, not)
+}
+
+// tagContainsValue checks if a specific value exists in a comma-separated tag string.
+func tagContainsValue(tag, value string) bool {
+	tags := strings.Split(tag, ",")
+	for _, t := range tags {
+		if strings.TrimSpace(t) == value {
+			return true
+		}
+	}
+	return false
 }
 
 // Value Create a Nullable from a value

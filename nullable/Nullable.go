@@ -10,21 +10,20 @@ import (
 )
 
 const (
-	ANNOTATIONS                                    = `annotations`
 	BAD_REQUEST                                    = `bad request`
 	COMMA                                          = `,`
-	LEFT_SQUARE_BRACKET                            = `[`
+	JSON                                           = `json`
 	LEFT_AND_RIGHT_MUST_BE_STRUCTS                 = `left and right must be structs`
 	LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS    = `left and right must have qual no of fields`
 	LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL = `left and right name, type and tag must be equal`
-	JSON                                           = `json`
-	NOTHING                                        = ``
+	LEFT_SQUARE_BRACKET                            = `[`
+	Modified_Field_Name                            = `Modified`
 	MODIFY_READ_ONLY                               = `modify read only`
-	MODIFIED                                       = `Modified`
 	NIL_POINTER                                    = `nil pointer`
-	readonly                                       = `readonly`
+	PERMISSIONS                                    = `Org.OData.Core.V1.Permissions`
 	read_only                                      = `read_only`
-	READONLY                                       = `ReadOnly`
+	READ                                           = `Org.OData.Core.V1.Permission/Read`
+	ReadOnly_Field_Name                            = `ReadOnly`
 	SELECTED                                       = `Selected`
 	SET_DATA                                       = `set data`
 	SET_NULLABLE                                   = `set nullable`
@@ -238,7 +237,7 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 
 		field := leftType.Field(i)
 		fieldName := strings.Split(field.Tag.Get(`json`), COMMA)[0]
-		if fieldName == NOTHING {
+		if fieldName == "" {
 			fieldName = field.Name
 		}
 
@@ -348,7 +347,7 @@ func FindModifiedFields(data any) []string {
 			jsonTag = fieldName
 		}
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
-			modified := field.FieldByName("Modified")
+			modified := field.FieldByName(Modified_Field_Name)
 			if modified.IsValid() && modified.Bool() {
 				result = append(result, jsonTag)
 			}
@@ -410,17 +409,17 @@ func GetModifiedTags(input any) []string {
 			value := inputValue.Field(i)
 
 			tag = getJsonTag(field)
-			if tag == NOTHING {
+			if tag == "" {
 				tag = field.Name
 			}
 
 			if value.Type().Kind() == reflect.Struct {
 				if IsNullable(value) {
-					readOnly := value.FieldByName(READONLY)
+					readOnly := value.FieldByName(ReadOnly_Field_Name)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
-					modified := value.FieldByName("Modified")
+					modified := value.FieldByName(Modified_Field_Name)
 					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
 						result = append(result, tag)
 					}
@@ -449,17 +448,17 @@ func GetReadOnlyTags[T any](input T, includeNonNullable bool) []string {
 			inputType = inputType.Elem()
 		}
 
-		tag := NOTHING
+		tag := ""
 		for i := 0; i < inputValue.NumField(); i++ {
 
 			field := inputType.Field(i)
 			value := inputValue.Field(i)
 
 			tag = getJsonTag(field)
-			if tag == NOTHING {
+			if tag == "" {
 				tag = field.Name
 			}
-			readonlyAnnotation, err := checkFieldForTagValue(field, ANNOTATIONS, readonly)
+			readonlyAnnotation, err := checkFieldForTagValue(field, PERMISSIONS, READ)
 			if err != nil {
 				readonlyAnnotation = false
 			}
@@ -505,14 +504,14 @@ func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 			inputType = inputType.Elem()
 		}
 
-		tag := NOTHING
+		tag := ""
 		for i := 0; i < inputValue.NumField(); i++ {
 
 			field := inputType.Field(i)
 			value := inputValue.Field(i)
 
 			tag = getJsonTag(field)
-			if tag == NOTHING {
+			if tag == "" {
 				tag = field.Name
 			}
 
@@ -698,7 +697,7 @@ func Modified(model any) bool {
 
 			if field.Type().Kind() == reflect.Struct {
 				if IsNullable(field) {
-					modified := field.FieldByName(MODIFIED)
+					modified := field.FieldByName(Modified_Field_Name)
 					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
 						return true
 					}
@@ -735,12 +734,12 @@ func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string
 		return m
 	}
 
-	if tagName == NOTHING {
-		tagName = ANNOTATIONS
+	if tagName == "" {
+		tagName = PERMISSIONS
 	}
 
-	if tagValue == NOTHING {
-		tagValue = readonly
+	if tagValue == "" {
+		tagValue = READ
 	}
 
 	instanceType := instance.Type()
@@ -760,7 +759,7 @@ func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string
 			continue
 		}
 
-		found, err := checkFieldForTagValue(structField, ANNOTATIONS, readonly)
+		found, err := checkFieldForTagValue(structField, PERMISSIONS, READ)
 		if err != nil {
 			m := ErrorMessage{
 				Attempted:  `checkFieldForTagValue`,
@@ -779,7 +778,7 @@ func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string
 
 		reflectValue := instance.Field(i)
 
-		readOnly := reflectValue.FieldByName(READONLY)
+		readOnly := reflectValue.FieldByName(ReadOnly_Field_Name)
 		if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.CanSet() && !readOnly.Bool() {
 			readOnly.SetBool(true)
 		}
@@ -824,7 +823,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 
 		field := instanceType.Field(i)
 		tag := strings.Split(field.Tag.Get(`json`), COMMA)[0]
-		if tag == NOTHING {
+		if tag == "" {
 			tag = field.Name
 		}
 
@@ -877,7 +876,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 
 // SetModifiedBooleanFields calls SetBooleanFields with 'Modified' as the field name
 func SetModifiedBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
-	return setBooleanFields(instance, fields, `Modified`, target, not)
+	return setBooleanFields(instance, fields, Modified_Field_Name, target, not)
 }
 
 // SetModifiedIfDifferent sets any field in the left struct to modified if different from the right
@@ -964,12 +963,12 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 						continue
 					}
 					if !reflect.DeepEqual(modifyData.Interface(), baseData.Interface()) {
-						baseModified := baseField.FieldByName("Modified")
+						baseModified := baseField.FieldByName(Modified_Field_Name)
 						if !(baseModified.IsValid() || baseModified.CanInterface()) {
 							continue
 						}
 						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
-							err := SetNullableField(true, `Modified`, modifyField)
+							err := SetNullableField(true, Modified_Field_Name, modifyField)
 							if err != nil {
 								m := ErrorMessage{
 									Attempted: `nullable.SetNullableField`,
@@ -1022,12 +1021,12 @@ func SetModifiedIfSelected(model any) error {
 		}
 
 		selected := field.FieldByName(SELECTED)
-		modified := field.FieldByName("Modified")
+		modified := field.FieldByName(Modified_Field_Name)
 
 		// Ensure fields are valid and settable
 		if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
 			if modified.IsValid() && modified.Kind() == reflect.Bool {
-				err := SetNullableField(true, `Modified`, field)
+				err := SetNullableField(true, Modified_Field_Name, field)
 				if err != nil {
 					m := ErrorMessage{
 						Attempted: `SetNullableField`,
@@ -1073,7 +1072,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 			return fmt.Errorf("value type %s does not match field type %s", val.Type(), field.Type())
 		}
 		field.Set(val)
-	case "Valid", "Selected", "Modified":
+	case "Valid", "Selected", Modified_Field_Name:
 		if val.Kind() != reflect.Bool {
 			return fmt.Errorf("value type %s does not match field type bool", val.Kind())
 		}

@@ -9,28 +9,6 @@ import (
 	"time"
 )
 
-const (
-	BAD_REQUEST                                    = `bad request`
-	COMMA                                          = `,`
-	JSON                                           = `json`
-	LEFT_AND_RIGHT_MUST_BE_STRUCTS                 = `left and right must be structs`
-	LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS    = `left and right must have qual no of fields`
-	LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL = `left and right name, type and tag must be equal`
-	LEFT_SQUARE_BRACKET                            = `[`
-	MODIFIED_STRUCT_NAME                           = `Modified`
-	MODIFY_READ_ONLY                               = `modify read only`
-	NIL_POINTER                                    = `nil pointer`
-	PERMISSIONS                                    = `Org.OData.Core.V1.Permissions`
-	read_only                                      = `read_only`
-	READ                                           = `Org.OData.Core.V1.Permission/Read`
-	ReadOnly_Field_Name                            = `ReadOnly`
-	SELECTED                                       = `Selected`
-	SET_DATA                                       = `set data`
-	SET_NULLABLE                                   = `set nullable`
-	UNEXPECTED_ERROR                               = `unexpected error`
-	VARIABLE_MUST_BE_A_STRUCT                      = `variable must be a struct`
-)
-
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
 	Data     T
@@ -433,11 +411,11 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
 				continue
 			}
-			rightSelected := rightField.FieldByName(SELECTED).Bool()
+			rightSelected := rightField.FieldByName(SELECTED_STRUCT_NAME).Bool()
 
 			if rightSelected {
 				if setRightSelectedFalse {
-					err := SetNullableField(false, SELECTED, rightField)
+					err := SetNullableField(false, SELECTED_STRUCT_NAME, rightField)
 					if err != nil {
 						message := ErrorMessage{
 							Attempted: `SetValueToNullableField`,
@@ -515,7 +493,7 @@ func FindModifiedFields(data any) []string {
 		if jsonTag == "" {
 			jsonTag = fieldName
 		}
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED_STRUCT_NAME) {
 			modified := field.FieldByName(MODIFIED_STRUCT_NAME)
 			if modified.IsValid() && modified.Bool() {
 				result = append(result, jsonTag)
@@ -543,8 +521,8 @@ func FindSelectedFields(data any) []string {
 		if jsonTag == "" {
 			jsonTag = fieldName
 		}
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
-			selected := field.FieldByName(SELECTED)
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED_STRUCT_NAME) {
+			selected := field.FieldByName(SELECTED_STRUCT_NAME)
 			if selected.IsValid() && selected.Bool() {
 				result = append(result, jsonTag)
 			}
@@ -584,7 +562,7 @@ func GetModifiedTags(input any) []string {
 
 			if value.Type().Kind() == reflect.Struct {
 				if IsNullable(value) {
-					readOnly := value.FieldByName(ReadOnly_Field_Name)
+					readOnly := value.FieldByName(READ_ONLY_STRUCT_NAME)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
@@ -804,8 +782,8 @@ func GetSelectedFields(any interface{}, fields []string) map[string]interface{} 
 			key = fieldName
 		}
 		fieldNameInFields := fieldNameIsInFields(key, fields)
-		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
-			selectedField := field.FieldByName(SELECTED)
+		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED_STRUCT_NAME) {
+			selectedField := field.FieldByName(SELECTED_STRUCT_NAME)
 			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
 				result[key] = field.Interface()
 			}
@@ -840,6 +818,10 @@ func hasField(typ reflect.Type, fieldName string) bool {
 		}
 	}
 	return false
+}
+
+func IsFieldExported(field reflect.StructField) bool {
+	return field.PkgPath == ""
 }
 
 // IsSelectedEqual checks all the selected Nullable fields in the left instance against the right object
@@ -887,8 +869,8 @@ func IsSelectedEqual(left, right reflect.Value) bool {
 				continue
 			}
 
-			leftSelected := leftField.FieldByName(SELECTED).Bool()
-			rightSelected := rightField.FieldByName(SELECTED).Bool()
+			leftSelected := leftField.FieldByName(SELECTED_STRUCT_NAME).Bool()
+			rightSelected := rightField.FieldByName(SELECTED_STRUCT_NAME).Bool()
 
 			if leftSelected == rightSelected {
 				leftData := leftField.FieldByName("Data")
@@ -1012,7 +994,7 @@ func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string
 
 		reflectValue := instance.Field(i)
 
-		readOnly := reflectValue.FieldByName(ReadOnly_Field_Name)
+		readOnly := reflectValue.FieldByName(READ_ONLY_STRUCT_NAME)
 		if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.CanSet() && !readOnly.Bool() {
 			readOnly.SetBool(true)
 		}
@@ -1174,7 +1156,7 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 		}
 		if IsNullable(modifyField) {
 			if modifyField.IsValid() && baseField.IsValid() {
-				modifySelectedField := modifyField.FieldByName(SELECTED)
+				modifySelectedField := modifyField.FieldByName(SELECTED_STRUCT_NAME)
 				if !(modifySelectedField.IsValid() || modifySelectedField.CanInterface()) {
 					continue
 				}
@@ -1254,7 +1236,7 @@ func SetModifiedIfSelected(model any) error {
 			continue
 		}
 
-		selected := field.FieldByName(SELECTED)
+		selected := field.FieldByName(SELECTED_STRUCT_NAME)
 		modified := field.FieldByName(MODIFIED_STRUCT_NAME)
 
 		// Ensure fields are valid and settable
@@ -1337,7 +1319,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 
 // SetReadOnlyBooleanFields calls SetBooleanFields with "ReadOnly" as the field name
 func SetReadOnlyBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
-	return setBooleanFields(instance, fields, read_only, target, not)
+	return setBooleanFields(instance, fields, READ_ONLY, target, not)
 }
 
 // setReflectValueFromToField sets the value from the `from` struct to the `to` struct for the specified field.
@@ -1416,11 +1398,11 @@ func SetSelected(model any, state bool) error {
 		if !field.IsValid() {
 			continue
 		}
-		selected := field.FieldByName(SELECTED)
+		selected := field.FieldByName(SELECTED_STRUCT_NAME)
 		if !(selected.IsValid() && selected.Kind() == reflect.Bool) {
 			continue
 		}
-		err := SetNullableField(state, SELECTED, field)
+		err := SetNullableField(state, SELECTED_STRUCT_NAME, field)
 		if err != nil {
 			m := ErrorMessage{
 				Attempted: `SetNullableField`,

@@ -9,28 +9,6 @@ import (
 	"time"
 )
 
-const (
-	BAD_REQUEST                                    = `bad request`
-	COMMA                                          = `,`
-	JSON                                           = `json`
-	LEFT_AND_RIGHT_MUST_BE_STRUCTS                 = `left and right must be structs`
-	LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS    = `left and right must have qual no of fields`
-	LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL = `left and right name, type and tag must be equal`
-	LEFT_SQUARE_BRACKET                            = `[`
-	Modified_Field_Name                            = `Modified`
-	MODIFY_READ_ONLY                               = `modify read only`
-	NIL_POINTER                                    = `nil pointer`
-	PERMISSIONS                                    = `Org.OData.Core.V1.Permissions`
-	read_only                                      = `read_only`
-	READ                                           = `Org.OData.Core.V1.Permission/Read`
-	ReadOnly_Field_Name                            = `ReadOnly`
-	SELECTED                                       = `Selected`
-	SET_DATA                                       = `set data`
-	SET_NULLABLE                                   = `set nullable`
-	UNEXPECTED_ERROR                               = `unexpected error`
-	VARIABLE_MUST_BE_A_STRUCT                      = `variable must be a struct`
-)
-
 // Nullable represents data that also can be NULL
 type Nullable[T any] struct {
 	Data     T
@@ -347,7 +325,7 @@ func FindModifiedFields(data any) []string {
 			jsonTag = fieldName
 		}
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED) {
-			modified := field.FieldByName(Modified_Field_Name)
+			modified := field.FieldByName(MODIFIED)
 			if modified.IsValid() && modified.Bool() {
 				result = append(result, jsonTag)
 			}
@@ -419,7 +397,7 @@ func GetModifiedTags(input any) []string {
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
 					}
-					modified := value.FieldByName(Modified_Field_Name)
+					modified := value.FieldByName(MODIFIED)
 					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
 						result = append(result, tag)
 					}
@@ -609,6 +587,10 @@ func hasField(typ reflect.Type, fieldName string) bool {
 	return false
 }
 
+func IsFieldExported(field reflect.StructField) bool {
+	return field.PkgPath == ""
+}
+
 // IsSelectedEqual checks all the selected Nullable fields in the left instance against the right object
 func IsSelectedEqual(left, right reflect.Value) bool {
 
@@ -697,7 +679,7 @@ func Modified(model any) bool {
 
 			if field.Type().Kind() == reflect.Struct {
 				if IsNullable(field) {
-					modified := field.FieldByName(Modified_Field_Name)
+					modified := field.FieldByName(MODIFIED)
 					if modified.IsValid() && modified.Kind() == reflect.Bool && modified.Bool() {
 						return true
 					}
@@ -876,7 +858,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 
 // SetModifiedBooleanFields calls SetBooleanFields with 'Modified' as the field name
 func SetModifiedBooleanFields(instance reflect.Value, fields []string, target bool, not bool) error {
-	return setBooleanFields(instance, fields, Modified_Field_Name, target, not)
+	return setBooleanFields(instance, fields, MODIFIED, target, not)
 }
 
 // SetModifiedIfDifferent sets any field in the left struct to modified if different from the right
@@ -963,12 +945,12 @@ func SetModifiedIfDifferent(modify, base reflect.Value) error {
 						continue
 					}
 					if !reflect.DeepEqual(modifyData.Interface(), baseData.Interface()) {
-						baseModified := baseField.FieldByName(Modified_Field_Name)
+						baseModified := baseField.FieldByName(MODIFIED)
 						if !(baseModified.IsValid() || baseModified.CanInterface()) {
 							continue
 						}
 						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
-							err := SetNullableField(true, Modified_Field_Name, modifyField)
+							err := SetNullableField(true, MODIFIED, modifyField)
 							if err != nil {
 								m := ErrorMessage{
 									Attempted: `nullable.SetNullableField`,
@@ -1021,12 +1003,12 @@ func SetModifiedIfSelected(model any) error {
 		}
 
 		selected := field.FieldByName(SELECTED)
-		modified := field.FieldByName(Modified_Field_Name)
+		modified := field.FieldByName(MODIFIED)
 
 		// Ensure fields are valid and settable
 		if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
 			if modified.IsValid() && modified.Kind() == reflect.Bool {
-				err := SetNullableField(true, Modified_Field_Name, field)
+				err := SetNullableField(true, MODIFIED, field)
 				if err != nil {
 					m := ErrorMessage{
 						Attempted: `SetNullableField`,
@@ -1040,6 +1022,60 @@ func SetModifiedIfSelected(model any) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+// SetSelected changes the state of the Nullable selected field
+// 2025-04-28 - Keith John Hutchison
+func SetSelected(model any, state bool) error {
+
+	function := `Nullable.SetSelected`
+
+	// Get the type and inputValue of the input data
+	inputValue := reflect.ValueOf(model)
+
+	if inputValue.Kind() == reflect.Ptr {
+		inputValue = inputValue.Elem()
+	}
+
+	if inputValue.Kind() != reflect.Struct {
+		return nil
+	}
+
+	structType := inputValue.Type()
+
+	for i := 0; i < inputValue.NumField(); i++ {
+		field := inputValue.Field(i)
+		fieldName := structType.Field(i).Name
+
+		if field.Type().Kind() != reflect.Struct {
+			continue
+		}
+
+		if !IsNullable(field) {
+			continue
+		}
+		// Set field if valid and settable
+		if !field.IsValid() {
+			continue
+		}
+		selected := field.FieldByName(SELECTED)
+		if !(selected.IsValid() && selected.Kind() == reflect.Bool) {
+			continue
+		}
+		err := SetNullableField(state, SELECTED, field)
+		if err != nil {
+			m := ErrorMessage{
+				Attempted: `SetNullableField`,
+				Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, fieldName, err),
+				ErrorNo:   http.StatusInternalServerError,
+				Function:  function,
+				Message:   UNEXPECTED_ERROR,
+			}
+			return m
+		}
 	}
 
 	return nil
@@ -1072,7 +1108,7 @@ func SetNullableField(value any, fieldName string, nullableField reflect.Value) 
 			return fmt.Errorf("value type %s does not match field type %s", val.Type(), field.Type())
 		}
 		field.Set(val)
-	case "Valid", "Selected", Modified_Field_Name:
+	case "Valid", "Selected", MODIFIED:
 		if val.Kind() != reflect.Bool {
 			return fmt.Errorf("value type %s does not match field type bool", val.Kind())
 		}

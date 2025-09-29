@@ -13,16 +13,13 @@ import (
 type Nullable[T any] struct {
 	Data     T
 	Modified bool
-	ReadOnly bool
 	Selected bool
 	Valid    bool
 }
 
 // Nullable represents read only data that also can be NULL
 type NullableReadOnly[T any] struct {
-	Data     T
-	Modified bool
-	ReadOnly bool
+	data     T
 	Selected bool
 	Valid    bool
 }
@@ -33,18 +30,18 @@ func (n Nullable[T]) DoesNotEqual(other Nullable[T]) bool {
 }
 
 // DoesNotEqual is the opposite of Equal
-func (n NullableReadOnly[T]) DoesNotEqual(other Nullable[T]) bool {
+func (n NullableReadOnly[T]) DoesNotEqual(other NullableReadOnly[T]) bool {
 	return !n.Equal(other)
 }
 
 func (n Nullable[T]) GoString() string {
 	var ref T
-	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v,ReadOnly:%#v}", ref, n.Data, n.Valid, n.Selected, n.ReadOnly)
+	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
 }
 
 func (n NullableReadOnly[T]) GoString() string {
 	var ref T
-	return fmt.Sprintf("nullable.NullableReadOnly[%T]{Data:%#v,Valid:%#v,Selected:%#v,ReadOnly:%#v}", ref, n.Data, n.Valid, n.Selected, n.ReadOnly)
+	return fmt.Sprintf("nullable.NullableReadOnly[%T]{data:%#v,Valid:%#v,Selected:%#v}", ref, n.data, n.Valid, n.Selected)
 }
 
 // IsEmpty is syntactic sugar for IsZero
@@ -62,7 +59,7 @@ func (n NullableReadOnly[T]) IsEmpty() bool {
 		return true
 	}
 	var ref T
-	return any(ref) == any(n.Data)
+	return any(ref) == any(n.data)
 }
 
 // IsNotEmpty is syntactic sugar for IsNotZero
@@ -90,7 +87,7 @@ func (n NullableReadOnly[T]) IsZero() bool {
 		return true
 	}
 	var ref T
-	return any(ref) == any(n.Data)
+	return any(ref) == any(n.data)
 }
 
 // IsNotZero
@@ -109,37 +106,11 @@ func (n *Nullable[T]) Set(data Nullable[T]) error {
 		message := ErrorMessage{Message: NIL_POINTER, Attempted: SET_NULLABLE, Details: data}
 		return message
 	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
-		return m
-	}
 	// Compare current data with the new data
 	if !reflect.DeepEqual(n.Data, data.Data) {
 		n.Data = data.Data
 		n.Modified = true
 	}
-
-	n.Valid = true
-	n.Selected = true
-	return nil
-}
-
-// Set assigns a Nullable[model] as well as selected and valid.
-func (n *NullableReadOnly[T]) Set(data Nullable[T]) error {
-	if n == nil {
-		message := ErrorMessage{Message: NIL_POINTER, Attempted: SET_NULLABLE, Details: data}
-		return message
-	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
-		return m
-	}
-	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data.Data) {
-		n.Data = data.Data
-		n.Modified = true
-	}
-
 	n.Valid = true
 	n.Selected = true
 	return nil
@@ -149,32 +120,6 @@ func (n *NullableReadOnly[T]) Set(data Nullable[T]) error {
 func (n *Nullable[T]) SetData(data T) error {
 	if n == nil {
 		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: NIL_POINTER, Attempted: SET_DATA, Details: data}
-		return m
-	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
-		return m
-	}
-
-	// Compare current data with the new data
-	if !reflect.DeepEqual(n.Data, data) {
-		n.Data = data
-		n.Modified = true
-	}
-
-	n.Valid = true
-	n.Selected = true
-	return nil
-}
-
-// SetData assigns a value as well as selected and valid.
-func (n *NullableReadOnly[T]) SetData(data T) error {
-	if n == nil {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: NIL_POINTER, Attempted: SET_DATA, Details: data}
-		return m
-	}
-	if n.ReadOnly {
-		m := ErrorMessage{ErrorNo: http.StatusBadRequest, Message: BAD_REQUEST, Attempted: MODIFY_READ_ONLY, Details: data}
 		return m
 	}
 
@@ -243,7 +188,7 @@ func (n *NullableReadOnly[T]) True() bool {
 		return false
 	}
 
-	switch data := any(n.Data).(type) {
+	switch data := any(n.data).(type) {
 	case string:
 		switch data {
 		case "true", "yes", "y":
@@ -300,7 +245,7 @@ func (n NullableReadOnly[T]) ValueOrZero() T {
 		var ref T
 		return ref
 	}
-	return n.Data
+	return n.data
 }
 
 // String Convert value to string
@@ -310,7 +255,7 @@ func (n Nullable[T]) String() string {
 
 // String Convert value to string
 func (n NullableReadOnly[T]) String() string {
-	return fmt.Sprintf("%s", any(n.Data))
+	return fmt.Sprintf("%s", any(n.data))
 }
 
 // Equal Check if this Nullable is equal to another Nullable
@@ -325,11 +270,11 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 }
 
 // Equal Check if this Nullable is equal to another Nullable
-func (n NullableReadOnly[T]) Equal(other Nullable[T]) bool {
-	switch any(n.Data).(type) {
+func (n NullableReadOnly[T]) Equal(other NullableReadOnly[T]) bool {
+	switch any(n.data).(type) {
 	case time.Time:
-		nValue := any(n.Data).(time.Time)
-		otherValue := any(other.Data).(time.Time)
+		nValue := any(n.data).(time.Time)
+		otherValue := any(other.data).(time.Time)
 		return n.Valid == other.Valid && (!n.Valid || nValue.Equal(otherValue))
 	}
 	return n.ExactEqual(other)
@@ -341,8 +286,8 @@ func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 }
 
 // ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
-func (n NullableReadOnly[T]) ExactEqual(other Nullable[T]) bool {
-	return n.Valid == other.Valid && (!n.Valid || any(n.Data) == any(other.Data))
+func (n NullableReadOnly[T]) ExactEqual(other NullableReadOnly[T]) bool {
+	return n.Valid == other.Valid && (!n.Valid || any(n.data) == any(other.data))
 }
 
 // checkStructForTagValue checks if a field in the struct has a specific value in its `annotation` tag.

@@ -104,6 +104,7 @@ func Test_Time_from_value(t *testing.T) {
 }
 
 func Test_Time_from_pointer(t *testing.T) {
+	//nolint:infertypeargs
 	ti := ValueFromPointer[time.Time](&timeValue1)
 	assertTime(t, ti, "ValueFromPointer[time.Time() time")
 
@@ -125,62 +126,62 @@ func Test_Time_ValueOrZero(t *testing.T) {
 }
 
 func Test_Time_Equal(t *testing.T) {
-	t1 := Nullable[time.Time]{timeValue1, false, false}
-	t2 := Nullable[time.Time]{timeValue2, false, false}
+	t1 := Nullable[time.Time]{timeValue1, false, false, false}
+	t2 := Nullable[time.Time]{timeValue2, false, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false, false}
-	t2 = Nullable[time.Time]{timeValue3, false, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false, false}
+	t2 = Nullable[time.Time]{timeValue3, false, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue2, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue1, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false, false}
 	assertEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue2, false, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue2, false, false, false}
 	assertNotEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false, false}
-	t2 = Nullable[time.Time]{timeValue2, true, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false, false}
 	assertNotEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue3, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue3, true, false, false}
 	assertNotEqual(t, t1, t2)
 }
 
 func Test_Time_ExactEqual(t *testing.T) {
-	t1 := Nullable[time.Time]{timeValue1, false, false}
-	t2 := Nullable[time.Time]{timeValue1, false, false}
+	t1 := Nullable[time.Time]{timeValue1, false, false, false}
+	t2 := Nullable[time.Time]{timeValue1, false, false, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false, false}
-	t2 = Nullable[time.Time]{timeValue2, false, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false, false}
+	t2 = Nullable[time.Time]{timeValue2, false, false, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue1, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false, false}
 	assertExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue1, false, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue1, false, false, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, false, false}
-	t2 = Nullable[time.Time]{timeValue1, true, false}
+	t1 = Nullable[time.Time]{timeValue1, false, false, false}
+	t2 = Nullable[time.Time]{timeValue1, true, false, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue2, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue2, true, false, false}
 	assertNotExactEqual(t, t1, t2)
 
-	t1 = Nullable[time.Time]{timeValue1, true, false}
-	t2 = Nullable[time.Time]{timeValue3, true, false}
+	t1 = Nullable[time.Time]{timeValue1, true, false, false}
+	t2 = Nullable[time.Time]{timeValue3, true, false, false}
 	assertNotExactEqual(t, t1, t2)
 }
 

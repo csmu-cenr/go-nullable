@@ -19,7 +19,7 @@ func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nil)
 }
 
-func (n NullableReadOnly[T]) MarshalJSON() ([]byte, error) {
+func (n ReadOnly[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return json.Marshal(nil)
 	}
@@ -54,7 +54,7 @@ func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("null: could not unmarshal JSON: %w", err)
 }
 
-func (n *NullableReadOnly[T]) UnmarshalJSON(data []byte) error {
+func (n *ReadOnly[T]) UnmarshalJSON(data []byte) error {
 
 	n.Selected = true
 
@@ -111,7 +111,7 @@ func unmarshalFloatStringJson[T any](f *Nullable[T], data []byte) error {
 	return nil
 }
 
-func unmarshalReadOnlyFloatStringJson[T any](f *NullableReadOnly[T], data []byte) error {
+func unmarshalReadOnlyFloatStringJson[T any](f *ReadOnly[T], data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return fmt.Errorf("null: couldn't unmarshal number string: %w", err)
@@ -184,7 +184,7 @@ func unmarshalIntStringJson[T any](f *Nullable[T], data []byte) error {
 	return nil
 }
 
-func unmarshalReadOnlyIntStringJson[T any](f *NullableReadOnly[T], data []byte) error {
+func unmarshalReadOnlyIntStringJson[T any](f *ReadOnly[T], data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return fmt.Errorf("null: couldn't unmarshal number string: %w", err)

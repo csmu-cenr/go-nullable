@@ -118,40 +118,40 @@ func Test_Json_marshal_string_in_struct(t *testing.T) {
 }
 
 func Test_String_ValueOrZero(t *testing.T) {
-	valid := Nullable[string]{"test", true, false}
+	valid := Nullable[string]{"test", true, false, false}
 	if valid.ValueOrZero() != "test" {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[string]{"test", false, false}
+	invalid := Nullable[string]{"test", false, false, false}
 	if invalid.ValueOrZero() != "" {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func Test_String_equal(t *testing.T) {
-	str1 := Nullable[string]{"foo", false, false}
-	str2 := Nullable[string]{"foo", false, false}
+	str1 := Nullable[string]{"foo", false, false, false}
+	str2 := Nullable[string]{"foo", false, false, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", false, false}
-	str2 = Nullable[string]{"bar", false, false}
+	str1 = Nullable[string]{"foo", false, false, false}
+	str2 = Nullable[string]{"bar", false, false, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true, false}
-	str2 = Nullable[string]{"foo", true, false}
+	str1 = Nullable[string]{"foo", true, false, false}
+	str2 = Nullable[string]{"foo", true, false, false}
 	assertEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true, false}
-	str2 = Nullable[string]{"foo", false, false}
+	str1 = Nullable[string]{"foo", true, false, false}
+	str2 = Nullable[string]{"foo", false, false, false}
 	assertNotEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", false, false}
-	str2 = Nullable[string]{"foo", true, false}
+	str1 = Nullable[string]{"foo", false, false, false}
+	str2 = Nullable[string]{"foo", true, false, false}
 	assertNotEqual(t, str1, str2)
 
-	str1 = Nullable[string]{"foo", true, false}
-	str2 = Nullable[string]{"bar", true, false}
+	str1 = Nullable[string]{"foo", true, false, false}
+	str2 = Nullable[string]{"bar", true, false, false}
 	assertNotEqual(t, str1, str2)
 }
 

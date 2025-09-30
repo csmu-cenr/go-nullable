@@ -116,7 +116,7 @@ func Test_Json_marshal_int(t *testing.T) {
 	assert.Equal(t, "12345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[int]{0, false, false}
+	null := Nullable[int]{0, false, false, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
 	assert.Equal(t, "null", string(data))
@@ -129,47 +129,47 @@ func Test_Text_marshal_int(t *testing.T) {
 	assert.Equal(t, "12345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[int]{0, false, false}
+	null := Nullable[int]{0, false, false, false}
 	data, err = null.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(data))
 }
 
 func Test_Int_ValueOrZero(t *testing.T) {
-	valid := Nullable[int]{12345, true, false}
+	valid := Nullable[int]{12345, true, false, false}
 	if valid.ValueOrZero() != 12345 {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[int]{12345, false, false}
+	invalid := Nullable[int]{12345, false, false, false}
 	if invalid.ValueOrZero() != 0 {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func Test_Int_Equal(t *testing.T) {
-	int1 := Nullable[int]{10, false, false}
-	int2 := Nullable[int]{10, false, false}
+	int1 := Nullable[int]{10, false, false, false}
+	int2 := Nullable[int]{10, false, false, false}
 	assertEqual(t, int1, int2)
 
-	int1 = Nullable[int]{10, false, false}
-	int2 = Nullable[int]{20, false, false}
+	int1 = Nullable[int]{10, false, false, false}
+	int2 = Nullable[int]{20, false, false, false}
 	assertEqual(t, int1, int2)
 
-	int1 = Nullable[int]{10, true, false}
-	int2 = Nullable[int]{10, true, false}
+	int1 = Nullable[int]{10, true, false, false}
+	int2 = Nullable[int]{10, true, false, false}
 	assertEqual(t, int1, int2)
 
-	int1 = Nullable[int]{10, true, false}
-	int2 = Nullable[int]{10, false, false}
+	int1 = Nullable[int]{10, true, false, false}
+	int2 = Nullable[int]{10, false, false, false}
 	assertNotEqual(t, int1, int2)
 
-	int1 = Nullable[int]{10, false, false}
-	int2 = Nullable[int]{10, true, false}
+	int1 = Nullable[int]{10, false, false, false}
+	int2 = Nullable[int]{10, true, false, false}
 	assertNotEqual(t, int1, int2)
 
-	int1 = Nullable[int]{10, true, false}
-	int2 = Nullable[int]{20, true, false}
+	int1 = Nullable[int]{10, true, false, false}
+	int2 = Nullable[int]{20, true, false, false}
 	assertNotEqual(t, int1, int2)
 }
 

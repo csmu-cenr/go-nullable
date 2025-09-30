@@ -18,7 +18,7 @@ type Nullable[T any] struct {
 }
 
 // Nullable represents read only data that also can be NULL
-type NullableReadOnly[T any] struct {
+type ReadOnly[T any] struct {
 	data     T
 	Selected bool
 	Valid    bool
@@ -30,7 +30,7 @@ func (n Nullable[T]) DoesNotEqual(other Nullable[T]) bool {
 }
 
 // DoesNotEqual is the opposite of Equal
-func (n NullableReadOnly[T]) DoesNotEqual(other NullableReadOnly[T]) bool {
+func (n ReadOnly[T]) DoesNotEqual(other ReadOnly[T]) bool {
 	return !n.Equal(other)
 }
 
@@ -39,7 +39,7 @@ func (n Nullable[T]) GoString() string {
 	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
 }
 
-func (n NullableReadOnly[T]) GoString() string {
+func (n ReadOnly[T]) GoString() string {
 	var ref T
 	return fmt.Sprintf("nullable.NullableReadOnly[%T]{data:%#v,Valid:%#v,Selected:%#v}", ref, n.data, n.Valid, n.Selected)
 }
@@ -54,7 +54,7 @@ func (n Nullable[T]) IsEmpty() bool {
 }
 
 // IsEmpty is syntactic sugar for IsZero
-func (n NullableReadOnly[T]) IsEmpty() bool {
+func (n ReadOnly[T]) IsEmpty() bool {
 	if !n.Valid {
 		return true
 	}
@@ -68,7 +68,7 @@ func (n Nullable[T]) IsNotEmpty() bool {
 }
 
 // IsNotEmpty is syntactic sugar for IsNotZero
-func (n NullableReadOnly[T]) IsNotEmpty() bool {
+func (n ReadOnly[T]) IsNotEmpty() bool {
 	return !n.IsEmpty()
 }
 
@@ -82,7 +82,7 @@ func (n Nullable[T]) IsZero() bool {
 }
 
 // IsZero
-func (n NullableReadOnly[T]) IsZero() bool {
+func (n ReadOnly[T]) IsZero() bool {
 	if !n.Valid {
 		return true
 	}
@@ -96,7 +96,7 @@ func (n Nullable[T]) IsNotZero() bool {
 }
 
 // IsNotZero
-func (n NullableReadOnly[T]) IsNotZero() bool {
+func (n ReadOnly[T]) IsNotZero() bool {
 	return !n.IsZero()
 }
 
@@ -183,7 +183,7 @@ func (n *Nullable[T]) True() bool {
 }
 
 // True returns whether or not the data is true.
-func (n *NullableReadOnly[T]) True() bool {
+func (n *ReadOnly[T]) True() bool {
 	if n == nil {
 		return false
 	}
@@ -240,7 +240,7 @@ func (n Nullable[T]) ValueOrZero() T {
 }
 
 // ValueOrZero Get Value, or default zero value if it is NULL
-func (n NullableReadOnly[T]) ValueOrZero() T {
+func (n ReadOnly[T]) ValueOrZero() T {
 	if !n.Valid {
 		var ref T
 		return ref
@@ -254,7 +254,7 @@ func (n Nullable[T]) String() string {
 }
 
 // String Convert value to string
-func (n NullableReadOnly[T]) String() string {
+func (n ReadOnly[T]) String() string {
 	return fmt.Sprintf("%s", any(n.data))
 }
 
@@ -270,7 +270,7 @@ func (n Nullable[T]) Equal(other Nullable[T]) bool {
 }
 
 // Equal Check if this Nullable is equal to another Nullable
-func (n NullableReadOnly[T]) Equal(other NullableReadOnly[T]) bool {
+func (n ReadOnly[T]) Equal(other ReadOnly[T]) bool {
 	switch any(n.data).(type) {
 	case time.Time:
 		nValue := any(n.data).(time.Time)
@@ -286,7 +286,7 @@ func (n Nullable[T]) ExactEqual(other Nullable[T]) bool {
 }
 
 // ExactEqual Check if this Nullable is exact equal to another Nullable, never using intern Equal method to check equality
-func (n NullableReadOnly[T]) ExactEqual(other NullableReadOnly[T]) bool {
+func (n ReadOnly[T]) ExactEqual(other ReadOnly[T]) bool {
 	return n.Valid == other.Valid && (!n.Valid || any(n.data) == any(other.data))
 }
 

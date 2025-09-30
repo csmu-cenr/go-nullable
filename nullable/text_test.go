@@ -1,12 +1,12 @@
 package nullable
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Marshal_text(t *testing.T) {
-	assert.Equal(t, "Some notes", fmt.Sprintf("%s", Nullable[string]{Data: "Some notes", Valid: true}))
-	assert.Equal(t, "Some notes", fmt.Sprintf("%s", Value("Some notes")))
+	assert.Equal(t, "Some notes", Nullable[string]{Data: "Some notes", Valid: true}.String())
+	assert.Equal(t, "Some notes", Value("Some notes").String())
 }

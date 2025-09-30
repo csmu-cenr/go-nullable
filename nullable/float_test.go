@@ -132,7 +132,7 @@ func Test_Json_marshal_float(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float64]{0, false, false}
+	null := Nullable[float64]{0, false, false, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
 	assert.Equal(t, "null", string(data))
@@ -145,7 +145,7 @@ func Test_Json_marshal_float32(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float32]{0, false, false}
+	null := Nullable[float32]{0, false, false, false}
 	data, err = json.Marshal(null)
 	assert.NoError(t, err)
 	assert.Equal(t, "null", string(data))
@@ -158,57 +158,57 @@ func Test_Text_marshal_float64(t *testing.T) {
 	assert.Equal(t, "1.2345", string(data))
 
 	// invalid values should be encoded as null
-	null := Nullable[float64]{0, false, false}
+	null := Nullable[float64]{0, false, false, false}
 	data, err = null.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(data))
 }
 
 func Test_Float_Inf_and_NaN(t *testing.T) {
-	nan := Nullable[float64]{math.NaN(), true, false}
+	nan := Nullable[float64]{math.NaN(), true, false, false}
 	_, err := nan.MarshalJSON()
 	assert.Error(t, err, "expected error for NaN")
 
-	inf := Nullable[float64]{math.Inf(1), true, false}
+	inf := Nullable[float64]{math.Inf(1), true, false, false}
 	_, err = inf.MarshalJSON()
 	assert.Error(t, err, "expected error for Inf")
 }
 
 func Test_Float_ValueOrZero(t *testing.T) {
-	valid := Nullable[float64]{1.2345, true, false}
+	valid := Nullable[float64]{1.2345, true, false, false}
 	if valid.ValueOrZero() != 1.2345 {
 		t.Error("unexpected ValueOrZero", valid.ValueOrZero())
 	}
 
-	invalid := Nullable[float64]{1.2345, false, false}
+	invalid := Nullable[float64]{1.2345, false, false, false}
 	if invalid.ValueOrZero() != 0 {
 		t.Error("unexpected ValueOrZero", invalid.ValueOrZero())
 	}
 }
 
 func Test_Float_Equal(t *testing.T) {
-	f1 := Nullable[float64]{10, false, false}
-	f2 := Nullable[float64]{10, false, false}
+	f1 := Nullable[float64]{10, false, false, false}
+	f2 := Nullable[float64]{10, false, false, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, false, false}
-	f2 = Nullable[float64]{20, false, false}
+	f1 = Nullable[float64]{10, false, false, false}
+	f2 = Nullable[float64]{20, false, false, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true, false}
-	f2 = Nullable[float64]{10, true, false}
+	f1 = Nullable[float64]{10, true, false, false}
+	f2 = Nullable[float64]{10, true, false, false}
 	assertEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true, false}
-	f2 = Nullable[float64]{10, false, false}
+	f1 = Nullable[float64]{10, true, false, false}
+	f2 = Nullable[float64]{10, false, false, false}
 	assertNotEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, false, false}
-	f2 = Nullable[float64]{10, true, false}
+	f1 = Nullable[float64]{10, false, false, false}
+	f2 = Nullable[float64]{10, true, false, false}
 	assertNotEqual(t, f1, f2)
 
-	f1 = Nullable[float64]{10, true, false}
-	f2 = Nullable[float64]{20, true, false}
+	f1 = Nullable[float64]{10, true, false, false}
+	f2 = Nullable[float64]{20, true, false, false}
 	assertNotEqual(t, f1, f2)
 }
 

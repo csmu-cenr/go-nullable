@@ -24,6 +24,11 @@ type ReadOnly[T any] struct {
 	Valid    bool
 }
 
+func (r ReadOnly[T]) Nullable() Nullable[T] {
+	result := Nullable[T]{Data: r.data, Selected: r.Selected, Valid: r.Valid}
+	return result
+}
+
 // DoesNotEqual is the opposite of Equal
 func (n Nullable[T]) DoesNotEqual(other Nullable[T]) bool {
 	return !n.Equal(other)
@@ -70,6 +75,46 @@ func (n Nullable[T]) IsNotEmpty() bool {
 // IsNotEmpty is syntactic sugar for IsNotZero
 func (n ReadOnly[T]) IsNotEmpty() bool {
 	return !n.IsEmpty()
+}
+
+// IsNotSelected
+func (n Nullable[T]) IsNotSelected() bool {
+	return !n.Selected
+}
+
+// IsSelected
+func (n Nullable[T]) IsSelected() bool {
+	return n.Selected
+}
+
+// IsNotSelected
+func (n ReadOnly[T]) IsNotSelected() bool {
+	return !n.Selected
+}
+
+// IsSelected
+func (n ReadOnly[T]) IsSelected() bool {
+	return n.Valid
+}
+
+// IsNotValid
+func (n Nullable[T]) IsNotValid() bool {
+	return !n.Valid
+}
+
+// IsValid
+func (n Nullable[T]) IsValid() bool {
+	return n.Valid
+}
+
+// IsValid
+func (n ReadOnly[T]) IsValid() bool {
+	return n.Valid
+}
+
+// IsNotValid
+func (n ReadOnly[T]) IsNotValid() bool {
+	return n.Valid
 }
 
 // IsZero

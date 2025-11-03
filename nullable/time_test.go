@@ -105,7 +105,7 @@ func Test_Time_from_value(t *testing.T) {
 
 func Test_Time_from_pointer(t *testing.T) {
 	//nolint:infertypeargs
-	ti := ValueFromPointer[time.Time](&timeValue1)
+	ti := ValueFromPointer(&timeValue1)
 	assertTime(t, ti, "ValueFromPointer[time.Time() time")
 
 	null := ValueFromPointer[time.Time](nil)

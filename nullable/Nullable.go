@@ -39,6 +39,16 @@ func (n ReadOnly[T]) DoesNotEqual(other ReadOnly[T]) bool {
 	return !n.Equal(other)
 }
 
+// GetData is syntactic sugar for ValueOrZero Get Value, or default zero value if it is NULL
+func (n Nullable[T]) GetData() T {
+	return n.ValueOrZero()
+}
+
+// GetData is syntactic sugar for ValueOrZero Get Value, or default zero value if it is NULL
+func (r ReadOnly[T]) GetData() T {
+	return r.ValueOrZero()
+}
+
 func (n Nullable[T]) GoString() string {
 	var ref T
 	return fmt.Sprintf("nullable.Nullable[%T]{Data:%#v,Valid:%#v,Selected:%#v}", ref, n.Data, n.Valid, n.Selected)
@@ -448,7 +458,7 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 }
 
 // TODO Remove - it's a duplicate of FieldsContainsName
-func fieldNameIsInFields(fieldName string, fields []string) bool {
+func stringInStrings(fieldName string, fields []string) bool {
 	for i := 0; i < len(fields); i++ {
 		if fieldName == fields[i] {
 			return true
@@ -672,6 +682,63 @@ func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 	return fields
 }
 
+// GetSelectedTags is a generic function to get JSON tags of selected Nullable fields
+func GetSelectedTagsIgnoring[T any](input T, includeNonNullable bool, ignore []string) []string {
+	var fields []string
+
+	ignoreMap := map[string]bool{}
+	for _, i := range ignore {
+		ignoreMap[i] = true
+	}
+
+	inputValue := reflect.ValueOf(input)
+	if inputValue.Kind() == reflect.Ptr {
+		inputValue = inputValue.Elem()
+	}
+
+	if inputValue.Kind() == reflect.Struct {
+
+		inputType := reflect.TypeOf(input)
+		if inputType.Kind() == reflect.Ptr {
+			inputType = inputType.Elem()
+		}
+
+		tag := ""
+		for i := 0; i < inputValue.NumField(); i++ {
+
+			field := inputType.Field(i)
+			value := inputValue.Field(i)
+
+			tag = getJsonTag(field)
+			if tag == "" {
+				tag = field.Name
+			}
+
+			_, found := ignoreMap[tag]
+			if found {
+				continue
+			}
+
+			if value.Type().Kind() == reflect.Struct {
+				if IsNullable(value) {
+					selected := value.FieldByName(`Selected`)
+					if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
+						fields = append(fields, tag)
+					}
+				} else if includeNonNullable {
+					fields = append(fields, tag)
+				}
+			} else if includeNonNullable {
+				fields = append(fields, tag)
+			}
+
+		}
+
+	}
+
+	return fields
+}
+
 func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]interface{} {
 	var results []map[string]interface{}
 
@@ -771,7 +838,7 @@ func GetSelectedFields(any interface{}, fields []string) map[string]interface{} 
 		if key == "" {
 			key = fieldName
 		}
-		fieldNameInFields := fieldNameIsInFields(key, fields)
+		fieldNameInFields := stringInStrings(key, fields)
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED_STRUCT_NAME) {
 			selectedField := field.FieldByName(SELECTED_STRUCT_NAME)
 			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
@@ -840,6 +907,73 @@ func IsSelectedEqual(left, right reflect.Value) bool {
 		rightFieldType := rightTyoe.Field(i)
 		if strings.EqualFold(leftFieldType.Name, rightFieldType.Name) {
 			return false
+		}
+
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
+		}
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
+		}
+
+		if IsNullable(leftField) && IsNullable(rightField) {
+
+			// Ensure both fields are structs
+			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
+				continue
+			}
+
+			leftSelected := leftField.FieldByName(SELECTED_STRUCT_NAME).Bool()
+			rightSelected := rightField.FieldByName(SELECTED_STRUCT_NAME).Bool()
+
+			if leftSelected == rightSelected {
+				leftData := leftField.FieldByName("Data")
+				rightData := leftField.FieldByName("Data")
+				equal := reflect.DeepEqual(leftData, rightData)
+				if !equal {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+// IsSelectedConsideredEqual checks all considered selected Nullable fields in the left instance against the right object
+func IsSelectedConsideredEqual(left, right reflect.Value, considered []string) bool {
+
+	//functionName := `IsSelectedEqual`
+
+	// Dereference pointers if necessary
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
+	}
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
+		return false
+	}
+
+	leftType := left.Type()
+	rightTyoe := right.Type()
+	for i := 0; i < left.NumField(); i++ {
+
+		leftFieldType := leftType.Field(i)
+		rightFieldType := rightTyoe.Field(i)
+		if strings.EqualFold(leftFieldType.Name, rightFieldType.Name) {
+			return false
+		}
+
+		fieldName := leftFieldType.Name
+		if !stringInStrings(fieldName, considered) {
+			continue
 		}
 
 		leftField := left.Field(i)
@@ -995,6 +1129,129 @@ func SetAnnotatedReadOnlyFields(instance reflect.Value, tagName, tagValue string
 
 }
 
+func SetLeftModified(left, right reflect.Value, consider []string) error {
+
+	functionName := `nullable.SetModifiedIfDifferent`
+
+	// Dereference pointers if necessary
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
+	}
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "b454382e9be3",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
+	}
+
+	if left.NumField() != right.NumField() {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "d86a8a55fa29",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return m
+	}
+
+	leftType := left.Type()
+	rightType := right.Type()
+
+	for i := 0; i < left.NumField(); i++ {
+
+		leftTypeField := leftType.Field(i)
+		rightTypeField := rightType.Field(i)
+		if leftTypeField.Name != rightTypeField.Name && leftTypeField.Type != rightTypeField.Type && leftTypeField.Tag != rightTypeField.Tag {
+			m := ErrorMessage{
+				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
+				ErrorNo:  http.StatusBadRequest,
+				Exit:     "0a7f6c23bd09",
+				Function: functionName,
+				Message:  BAD_REQUEST,
+			}
+			return m
+		}
+
+		fieldName := leftTypeField.Name
+		if !stringInStrings(fieldName, consider) {
+			continue
+		}
+
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
+		}
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
+		}
+		if IsNullable(leftField) {
+			if leftField.IsValid() && rightField.IsValid() {
+				leftSelectedField := leftField.FieldByName(SELECTED_STRUCT_NAME)
+				if !(leftSelectedField.IsValid() || leftSelectedField.CanInterface()) {
+					continue
+				}
+				leftSelected := leftSelectedField.Bool()
+				if leftSelected {
+					leftReadOnlyField := leftField.FieldByName("ReadOnly")
+					if !(leftReadOnlyField.IsValid() && leftReadOnlyField.CanInterface()) {
+						continue
+					}
+					leftReadOnly := leftReadOnlyField.Bool()
+					if leftReadOnly {
+						continue
+					}
+					leftData := leftField.FieldByName("Data")
+					if !(leftData.IsValid() && leftData.CanInterface()) {
+						continue
+					}
+					rightData := rightField.FieldByName("Data")
+					if !(rightData.IsValid() && rightData.CanInterface()) {
+						continue
+					}
+					leftModified := leftField.FieldByName(MODIFIED_STRUCT_NAME)
+					if !(leftModified.IsValid() || leftModified.CanInterface()) {
+						continue
+					}
+					if !(leftModified.Kind() == reflect.Bool) {
+						continue
+					}
+					value := false // values on left and right are the same
+					if !reflect.DeepEqual(leftData.Interface(), rightData.Interface()) {
+						value = true // values on left and right are different
+					} else if rightData.IsValid() && rightData.CanInterface() {
+						value = false // continue as before
+					}
+					err := SetNullableField(value, MODIFIED_STRUCT_NAME, leftField)
+					if err != nil {
+						m := ErrorMessage{
+							Attempted: `nullable.SetNullableField`,
+							Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, leftType.Name(), err),
+							ErrorNo:   http.StatusBadRequest,
+							Exit:      "aff824611396",
+							Function:  functionName,
+							Message:   BAD_REQUEST,
+						}
+						return m
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // setBooleanFields sets every field in fields to the target, all others are set to not the target.
 func setBooleanFields(instance reflect.Value, tags []string, fieldName string, target bool, not bool) error {
 
@@ -1086,113 +1343,323 @@ func SetModifiedBooleanFields(instance reflect.Value, fields []string, target bo
 }
 
 // SetModifiedIfDifferent sets any field in the left struct to modified if different from the right
-func SetModifiedIfDifferent(modify, base reflect.Value) error {
+func SetModifiedIfDifferent(left, right reflect.Value) error {
 
 	functionName := `nullable.SetModifiedIfDifferent`
 
 	// Dereference pointers if necessary
-	if modify.Kind() == reflect.Ptr {
-		modify = modify.Elem()
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
 	}
-	if base.Kind() == reflect.Ptr {
-		base = base.Elem()
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
 	}
 
 	// Ensure both left and right are structs
-	if modify.Kind() != reflect.Struct || base.Kind() != reflect.Struct {
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
 		m := ErrorMessage{
 			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
 			ErrorNo:  http.StatusBadRequest,
+			Exit:     "b454382e9be3",
 			Function: functionName,
 			Message:  BAD_REQUEST,
 		}
 		return m
 	}
 
-	if modify.NumField() != base.NumField() {
+	if left.NumField() != right.NumField() {
 		m := ErrorMessage{
 			Details:  LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS,
 			ErrorNo:  http.StatusBadRequest,
+			Exit:     "d86a8a55fa29",
 			Function: functionName,
 			Message:  BAD_REQUEST,
 		}
 		return m
 	}
 
-	modifyType := modify.Type()
-	baseType := base.Type()
+	leftType := left.Type()
+	rightType := right.Type()
 
-	for i := 0; i < modify.NumField(); i++ {
+	for i := 0; i < left.NumField(); i++ {
 
-		modifyTypeField := modifyType.Field(i)
-		baseTypeField := baseType.Field(i)
-		if modifyTypeField.Name != baseTypeField.Name && modifyTypeField.Type != baseTypeField.Type && modifyTypeField.Tag != baseTypeField.Tag {
+		leftTypeField := leftType.Field(i)
+		rightTypeField := rightType.Field(i)
+		if leftTypeField.Name != rightTypeField.Name && leftTypeField.Type != rightTypeField.Type && leftTypeField.Tag != rightTypeField.Tag {
 			m := ErrorMessage{
 				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
 				ErrorNo:  http.StatusBadRequest,
+				Exit:     "0a7f6c23bd09",
 				Function: functionName,
 				Message:  BAD_REQUEST,
 			}
 			return m
 		}
-		modifyField := modify.Field(i)
-		baseField := base.Field(i)
 
-		if modifyField.Kind() == reflect.Ptr {
-			modifyField = modifyField.Elem()
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
 		}
-		if baseField.Kind() == reflect.Ptr {
-			baseField = baseField.Elem()
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
 		}
-		if IsNullable(modifyField) {
-			if modifyField.IsValid() && baseField.IsValid() {
-				modifySelectedField := modifyField.FieldByName(SELECTED_STRUCT_NAME)
-				if !(modifySelectedField.IsValid() || modifySelectedField.CanInterface()) {
+		if IsNullable(leftField) {
+			if leftField.IsValid() && rightField.IsValid() {
+				leftSelectedField := leftField.FieldByName(SELECTED_STRUCT_NAME)
+				if !(leftSelectedField.IsValid() || leftSelectedField.CanInterface()) {
 					continue
 				}
-				modifySelected := modifySelectedField.Bool()
-				if modifySelected {
-					modifyReadOnlyField := modifyField.FieldByName("ReadOnly")
-					if !(modifyReadOnlyField.IsValid() && modifyReadOnlyField.CanInterface()) {
+				leftSelected := leftSelectedField.Bool()
+				if leftSelected {
+					leftReadOnlyField := leftField.FieldByName("ReadOnly")
+					if !(leftReadOnlyField.IsValid() && leftReadOnlyField.CanInterface()) {
 						continue
 					}
-					modifyReadOnly := modifyReadOnlyField.Bool()
-					if modifyReadOnly {
+					leftReadOnly := leftReadOnlyField.Bool()
+					if leftReadOnly {
 						continue
 					}
-					modifyData := modifyField.FieldByName("Data")
-					if !(modifyData.IsValid() && modifyData.CanInterface()) {
+					leftData := leftField.FieldByName("Data")
+					if !(leftData.IsValid() && leftData.CanInterface()) {
 						continue
 					}
-					baseData := baseField.FieldByName("Data")
-					if !(baseData.IsValid() && baseData.CanInterface()) {
+					rightData := rightField.FieldByName("Data")
+					if !(rightData.IsValid() && rightData.CanInterface()) {
 						continue
 					}
-					if !reflect.DeepEqual(modifyData.Interface(), baseData.Interface()) {
-						baseModified := baseField.FieldByName(MODIFIED_STRUCT_NAME)
-						if !(baseModified.IsValid() || baseModified.CanInterface()) {
-							continue
+					leftModified := leftField.FieldByName(MODIFIED_STRUCT_NAME)
+					if !(leftModified.IsValid() || leftModified.CanInterface()) {
+						continue
+					}
+					if !(leftModified.Kind() == reflect.Bool) {
+						continue
+					}
+					value := false // values on left and right are the same
+					if !reflect.DeepEqual(leftData.Interface(), rightData.Interface()) {
+						value = true // values on left and right are different
+					} else if rightData.IsValid() && rightData.CanInterface() {
+						value = false // continue as before
+					}
+					err := SetNullableField(value, MODIFIED_STRUCT_NAME, leftField)
+					if err != nil {
+						m := ErrorMessage{
+							Attempted: `nullable.SetNullableField`,
+							Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, leftType.Name(), err),
+							ErrorNo:   http.StatusBadRequest,
+							Exit:      "aff824611396",
+							Function:  functionName,
+							Message:   BAD_REQUEST,
 						}
-						if baseModified.IsValid() && baseModified.Kind() == reflect.Bool {
-							err := SetNullableField(true, MODIFIED_STRUCT_NAME, modifyField)
-							if err != nil {
-								m := ErrorMessage{
-									Attempted: `nullable.SetNullableField`,
-									Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, modifyType.Name(), err),
-									ErrorNo:   http.StatusBadRequest,
-									Function:  functionName,
-									Message:   BAD_REQUEST,
-								}
-								return m
-							}
-						}
+						return m
 					}
 				}
 			}
 		}
 	}
-
 	return nil
+}
+
+// LeftIsDifferentFromRight determines if the data in the fields due to be updated are different from the source
+func LeftIsDifferentFromRight(left, right reflect.Value, consider []string) (result bool, err error) {
+
+	functionName := `nullable.LeftIsDifferentFromRight`
+
+	result = false
+
+	// Dereference pointers if necessary
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
+	}
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "34d4f14fbb5f",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return result, m
+	}
+
+	if left.NumField() != right.NumField() {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "44178aa46103",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return result, m
+	}
+
+	leftType := left.Type()
+	rightType := right.Type()
+
+	for i := 0; i < left.NumField(); i++ {
+
+		modifyTypeField := leftType.Field(i)
+		baseTypeField := rightType.Field(i)
+		if modifyTypeField.Name != baseTypeField.Name && modifyTypeField.Type != baseTypeField.Type && modifyTypeField.Tag != baseTypeField.Tag {
+			m := ErrorMessage{
+				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
+				ErrorNo:  http.StatusBadRequest,
+				Exit:     "1c59c7f0f0aa",
+				Function: functionName,
+				Message:  BAD_REQUEST,
+			}
+			return result, m
+		}
+
+		fieldName := rightType.Field(i).Name
+		if !stringInStrings(fieldName, consider) {
+			continue
+		}
+
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
+		}
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
+		}
+
+		if IsNullable(leftField) || IsNullable(rightField) {
+			if leftField.IsValid() && rightField.IsValid() {
+				leftSelectedField := leftField.FieldByName(SELECTED_STRUCT_NAME)
+				if !(leftSelectedField.IsValid() || leftSelectedField.CanInterface()) {
+					continue
+				}
+				leftData := leftField.FieldByName("Data")
+				if !(leftData.IsValid() && leftData.CanInterface()) {
+					continue
+				}
+				rightData := rightField.FieldByName("Data")
+				if !(rightData.IsValid() && rightData.CanInterface()) {
+					continue
+				}
+				if !reflect.DeepEqual(leftData.Interface(), rightData.Interface()) {
+					result = true
+					return result, err
+				}
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func LeftIsDifferentFromRightIgnoring(left, right reflect.Value, consider, ignore []string) (differences []string, err error) {
+
+	functionName := `nullable.LeftIsDifferentFromRightIgnoring`
+
+	differences = []string{}
+
+	// Dereference pointers if necessary
+	if left.Kind() == reflect.Ptr {
+		left = left.Elem()
+	}
+	if right.Kind() == reflect.Ptr {
+		right = right.Elem()
+	}
+
+	// Ensure both left and right are structs
+	if left.Kind() != reflect.Struct || right.Kind() != reflect.Struct {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_BE_STRUCTS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "34d4f14fbb5f",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return differences, m
+	}
+
+	if left.NumField() != right.NumField() {
+		m := ErrorMessage{
+			Details:  LEFT_AND_RIGHT_MUST_HAVE_EQUAL_NO_OF_FIELDS,
+			ErrorNo:  http.StatusBadRequest,
+			Exit:     "44178aa46103",
+			Function: functionName,
+			Message:  BAD_REQUEST,
+		}
+		return differences, m
+	}
+
+	leftType := left.Type()
+	rightType := right.Type()
+
+	for i := 0; i < left.NumField(); i++ {
+
+		leftTypeField := leftType.Field(i)
+		rightTypeField := rightType.Field(i)
+		if leftTypeField.Name != rightTypeField.Name && leftTypeField.Type != rightTypeField.Type && leftTypeField.Tag != rightTypeField.Tag {
+			m := ErrorMessage{
+				Details:  LEFT_AND_RIGHT_NAME_TYPE_AND_TAG_MUST_BE_EQUAL,
+				ErrorNo:  http.StatusBadRequest,
+				Exit:     "1c59c7f0f0aa",
+				Function: functionName,
+				Message:  BAD_REQUEST,
+			}
+			return differences, m
+		}
+
+		//jsonTag := rightType.Field(i).Name
+		jsonTag := strings.Split(leftTypeField.Tag.Get(`json`), COMMA)[0]
+		if jsonTag == "" {
+			jsonTag = leftTypeField.Name
+		}
+		if stringInStrings(jsonTag, ignore) {
+			continue
+		}
+		if !stringInStrings(jsonTag, consider) {
+			continue
+		}
+
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+
+		if leftField.Kind() == reflect.Ptr {
+			leftField = leftField.Elem()
+		}
+		if rightField.Kind() == reflect.Ptr {
+			rightField = rightField.Elem()
+		}
+
+		if IsNullable(leftField) || IsNullable(rightField) {
+			if leftField.IsValid() && rightField.IsValid() {
+				leftSelectedField := leftField.FieldByName(SELECTED_STRUCT_NAME)
+				if !(leftSelectedField.IsValid() || leftSelectedField.CanInterface()) {
+					continue
+				}
+				validLeft := leftField.FieldByName("Valid")
+				if !(validLeft.IsValid() || validLeft.CanInterface()) {
+					continue
+				}
+				leftData := leftField.FieldByName("Data")
+				if !(leftData.IsValid() && leftData.CanInterface()) {
+					continue
+				}
+				rightData := rightField.FieldByName("Data")
+				if !(rightData.IsValid() && rightData.CanInterface()) {
+					continue
+				}
+				if !reflect.DeepEqual(leftData.Interface(), rightData.Interface()) {
+					differences = append(differences, jsonTag)
+				}
+			}
+		}
+	}
+
+	return differences, nil
 }
 
 // SetModifiedIfSelected is used for data that
@@ -1238,6 +1705,7 @@ func SetModifiedIfSelected(model any) error {
 						Attempted: `SetNullableField`,
 						Details:   fmt.Sprintf(`FieldName: %s Err: %+v`, fieldName, err),
 						ErrorNo:   http.StatusInternalServerError,
+						Exit:      "aa96e8adf5ef",
 						Function:  function,
 						Message:   UNEXPECTED_ERROR,
 					}

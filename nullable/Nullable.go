@@ -25,7 +25,11 @@ type ReadOnly[T any] struct {
 }
 
 func (r ReadOnly[T]) Nullable() Nullable[T] {
-	result := Nullable[T]{Data: r.data, Selected: r.Selected, Valid: r.Valid}
+	result := Nullable[T]{
+		Data:     r.data,
+		Selected: r.Selected,
+		Valid:    r.Valid,
+	}
 	return result
 }
 
@@ -37,6 +41,15 @@ func (n Nullable[T]) DoesNotEqual(other Nullable[T]) bool {
 // DoesNotEqual is the opposite of Equal
 func (n ReadOnly[T]) DoesNotEqual(other ReadOnly[T]) bool {
 	return !n.Equal(other)
+}
+
+// Get as readonly
+func (n Nullable[T]) ReadOnly() ReadOnly[T] {
+	return ReadOnly[T]{
+		data:     n.Data,
+		Selected: n.Selected,
+		Valid:    n.Valid,
+	}
 }
 
 // GetData is syntactic sugar for ValueOrZero Get Value, or default zero value if it is NULL
@@ -757,40 +770,36 @@ func GetSelectedFieldsSlice(slice interface{}, fields []string) []map[string]int
 	return results
 }
 
-func GetNullableField[T any](model any, tag string) (Nullable[T], error) {
-	val := reflect.ValueOf(model)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+func GetNullableField(model any, tag string) (any, error) {
+
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
-	if val.Kind() != reflect.Struct {
-		return Nullable[T]{}, errors.New("model is not a struct")
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("model is not a struct")
 	}
 
-	typ := val.Type()
+	t := v.Type()
 
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := typ.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		sf := t.Field(i)
+		fv := v.Field(i)
 
-		key := fieldType.Tag.Get("json")
+		key := sf.Tag.Get("json")
 		if key == "" {
-			key = fieldType.Name
-		} else if strings.Contains(key, ",") {
-			key = strings.Split(key, ",")[0]
+			key = sf.Name
+		} else if idx := strings.Index(key, ","); idx != -1 {
+			key = key[:idx]
 		}
 
 		if key == tag {
-			// Check if field is of type Nullable[T]
-			fieldInterface := field.Interface()
-			if nullable, ok := fieldInterface.(Nullable[T]); ok {
-				return nullable, nil
-			} else {
-				return Nullable[T]{}, fmt.Errorf("field %s is not of type Nullable[T]", key)
-			}
+			// For Owner, this will be nullable.Nullable[T] or nullable.ReadOnly[T]
+			return fv.Interface(), nil
 		}
 	}
 
-	return Nullable[T]{}, fmt.Errorf("field with tag %s not found", tag)
+	return nil, fmt.Errorf("field with tag %s not found", tag)
 }
 
 func GetNullableFieldValue(model any, tag string) (reflect.Value, error) {

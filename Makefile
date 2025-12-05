@@ -1,4 +1,4 @@
-.PHONY: push version
+.PHONY: push tags version
 
 default: push
 
@@ -11,5 +11,8 @@ push:
 version:
 	@echo "Showing versions using 'git tag -n1'"
 	@git tag -n1
+	
+tags:
+	git tag -n1 | sort -rh | head -n 5
 	
 	

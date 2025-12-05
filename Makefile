@@ -1,5 +1,8 @@
-.PHONY: push tags version
+.PHONY: count push tags version
 
+count:
+	./count-git-commits-across-all-branches.sh
+	
 default: push
 
 push:

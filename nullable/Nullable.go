@@ -1649,8 +1649,16 @@ func LeftIsDifferentFromRightIgnoring(left, right reflect.Value, consider, ignor
 				if !(leftSelectedField.IsValid() || leftSelectedField.CanInterface()) {
 					continue
 				}
-				validLeft := leftField.FieldByName("Valid")
-				if !(validLeft.IsValid() || validLeft.CanInterface()) {
+				leftSelected := leftSelectedField.Bool()
+				if !leftSelected {
+					continue
+				}
+				leftValidField := leftField.FieldByName(VALID_STRUCT_NAME)
+				if !(leftValidField.IsValid() || leftValidField.CanInterface()) {
+					continue
+				}
+				leftValid := leftValidField.Bool()
+				if !leftValid {
 					continue
 				}
 				leftData := leftField.FieldByName("Data")

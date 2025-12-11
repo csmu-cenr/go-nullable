@@ -19,5 +19,6 @@ const (
 	SET_DATA                                       = `set data`
 	SET_NULLABLE                                   = `set nullable`
 	UNEXPECTED_ERROR                               = `unexpected error`
+	VALID_STRUCT_NAME                              = `Valid`
 	VARIABLE_MUST_BE_A_STRUCT                      = `variable must be a struct`
 )

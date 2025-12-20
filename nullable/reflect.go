@@ -159,6 +159,8 @@ func StructToMap(data any, fields []string) (map[string]any, error) {
 			return result, nil
 		}
 		for _, name := range fields {
+			name = strings.TrimSpace(name)
+			name = strings.Trim(name, `"'`+"`")
 			if name == "" {
 				continue
 			}
@@ -192,9 +194,8 @@ func StructToMap(data any, fields []string) (map[string]any, error) {
 		if tag == "" {
 			continue
 		}
-
 		// Only map if this tag is requested
-		if !stringInStrings(tag, fields) {
+		if !FieldsContainsName(fields, tag) {
 			continue
 		}
 

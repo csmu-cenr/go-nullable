@@ -470,18 +470,13 @@ func CopyLeftToRight(left, right reflect.Value, keepRight bool, setRightSelected
 	return nil
 }
 
-// TODO Remove - it's a duplicate of FieldsContainsName
-func stringInStrings(fieldName string, fields []string) bool {
-	for i := 0; i < len(fields); i++ {
-		if fieldName == fields[i] {
-			return true
-		}
-	}
-	return false
-}
-
+// FieldsContainsName determines if a string is in []string
 func FieldsContainsName(fields []string, name string) bool {
 	for _, field := range fields {
+		field = strings.TrimSpace(field)
+		field = strings.Trim(field, `"'`+"`")
+		name = strings.TrimSpace(name)
+		name = strings.Trim(name, `"'`+"`")
 		if strings.EqualFold(name, field) {
 			return true
 		}
@@ -847,7 +842,7 @@ func GetSelectedFields(any interface{}, fields []string) map[string]interface{} 
 		if key == "" {
 			key = fieldName
 		}
-		fieldNameInFields := stringInStrings(key, fields)
+		fieldNameInFields := FieldsContainsName(fields, key)
 		if field.Kind() == reflect.Struct && hasField(fieldType.Type, SELECTED_STRUCT_NAME) {
 			selectedField := field.FieldByName(SELECTED_STRUCT_NAME)
 			if (selectedField.IsValid() && selectedField.Bool()) || fieldNameInFields {
@@ -981,7 +976,7 @@ func IsSelectedConsideredEqual(left, right reflect.Value, considered []string) b
 		}
 
 		fieldName := leftFieldType.Name
-		if !stringInStrings(fieldName, considered) {
+		if !FieldsContainsName(considered, fieldName) {
 			continue
 		}
 
@@ -1192,7 +1187,7 @@ func SetLeftModified(left, right reflect.Value, consider []string) error {
 		}
 
 		fieldName := leftTypeField.Name
-		if !stringInStrings(fieldName, consider) {
+		if !FieldsContainsName(consider, fieldName) {
 			continue
 		}
 
@@ -1527,7 +1522,7 @@ func LeftIsDifferentFromRight(left, right reflect.Value, consider []string) (res
 		}
 
 		fieldName := rightType.Field(i).Name
-		if !stringInStrings(fieldName, consider) {
+		if !FieldsContainsName(consider, fieldName) {
 			continue
 		}
 
@@ -1626,10 +1621,10 @@ func LeftIsDifferentFromRightIgnoring(left, right reflect.Value, consider, ignor
 		if jsonTag == "" {
 			jsonTag = leftTypeField.Name
 		}
-		if stringInStrings(jsonTag, ignore) {
+		if FieldsContainsName(ignore, jsonTag) {
 			continue
 		}
-		if !stringInStrings(jsonTag, consider) {
+		if !FieldsContainsName(consider, jsonTag) {
 			continue
 		}
 

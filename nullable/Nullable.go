@@ -1272,7 +1272,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 		instance = instance.Elem()
 	}
 
-	// Ensure instance is a struct
+	// region Ensure instance is a struct
 	if instance.Kind() != reflect.Struct {
 		m := ErrorMessage{
 			Details:  VARIABLE_MUST_BE_A_STRUCT,
@@ -1282,6 +1282,7 @@ func setBooleanFields(instance reflect.Value, tags []string, fieldName string, t
 		}
 		return m
 	}
+	// endregion
 
 	process := false
 	value := false

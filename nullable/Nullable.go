@@ -569,7 +569,7 @@ func GetModifiedTags(input any) []string {
 			}
 
 			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
+				if IsNullable(value) || IsReadOnly(value) {
 					readOnly := value.FieldByName(READ_ONLY_STRUCT_NAME)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && readOnly.Bool() {
 						continue
@@ -619,7 +619,7 @@ func GetReadOnlyTags[T any](input T, includeNonNullable bool) []string {
 			}
 
 			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
+				if IsNullable(value) || IsReadOnly(value) {
 					readOnly := value.FieldByName(`ReadOnly`)
 					if readOnly.IsValid() && readOnly.Kind() == reflect.Bool && (readOnly.Bool() || readonlyAnnotation) {
 						fields = append(fields, tag)
@@ -671,7 +671,7 @@ func GetSelectedTags[T any](input T, includeNonNullable bool) []string {
 			}
 
 			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
+				if IsNullable(value) || IsReadOnly(value) {
 					selected := value.FieldByName(`Selected`)
 					if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
 						fields = append(fields, tag)
@@ -728,7 +728,7 @@ func GetSelectedTagsIgnoring[T any](input T, includeNonNullable bool, ignore []s
 			}
 
 			if value.Type().Kind() == reflect.Struct {
-				if IsNullable(value) {
+				if IsNullable(value) || IsReadOnly(value) {
 					selected := value.FieldByName(`Selected`)
 					if selected.IsValid() && selected.Kind() == reflect.Bool && selected.Bool() {
 						fields = append(fields, tag)
@@ -923,7 +923,7 @@ func IsSelectedEqual(left, right reflect.Value) bool {
 			rightField = rightField.Elem()
 		}
 
-		if IsNullable(leftField) && IsNullable(rightField) {
+		if (IsNullable(leftField) && IsNullable(rightField)) || (IsReadOnly(leftField) && IsReadOnly(rightField)) {
 
 			// Ensure both fields are structs
 			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
@@ -990,7 +990,7 @@ func IsSelectedConsideredEqual(left, right reflect.Value, considered []string) b
 			rightField = rightField.Elem()
 		}
 
-		if IsNullable(leftField) && IsNullable(rightField) {
+		if (IsNullable(leftField) && IsNullable(rightField)) || (IsReadOnly(leftField) && IsReadOnly(rightField)) {
 
 			// Ensure both fields are structs
 			if leftField.Kind() != reflect.Struct || rightField.Kind() != reflect.Struct {
@@ -1018,6 +1018,12 @@ func IsSelectedConsideredEqual(left, right reflect.Value, considered []string) b
 func IsNullable(model reflect.Value) bool {
 	name := strings.Split(model.Type().Name(), LEFT_SQUARE_BRACKET)[0]
 	return name == `Nullable`
+}
+
+// IsNullable
+func IsReadOnly(model reflect.Value) bool {
+	name := strings.Split(model.Type().Name(), LEFT_SQUARE_BRACKET)[0]
+	return name == `ReadOnly`
 }
 
 // Modified returns true if one or more Nullable fields are selected. Otherwise false is returned

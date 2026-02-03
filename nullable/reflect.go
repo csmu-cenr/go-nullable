@@ -7,17 +7,17 @@ import (
 	"strings"
 )
 
-// findFieldByJSONTag finds a struct field by its JSON tag.
-func findFieldByJSONTag(dataType reflect.Type, jsonTag string) (reflect.StructField, bool) {
-	for i := 0; i < dataType.NumField(); i++ {
-		field := dataType.Field(i)
-		tag := strings.Split(field.Tag.Get("json"), ",")[0]
-		if tag == jsonTag {
-			return field, true
-		}
-	}
-	return reflect.StructField{}, false
-}
+// // findFieldByJSONTag finds a struct field by its JSON tag.
+// func findFieldByJSONTag(dataType reflect.Type, jsonTag string) (reflect.StructField, bool) {
+// 	for i := 0; i < dataType.NumField(); i++ {
+// 		field := dataType.Field(i)
+// 		tag := strings.Split(field.Tag.Get("json"), ",")[0]
+// 		if tag == jsonTag {
+// 			return field, true
+// 		}
+// 	}
+// 	return reflect.StructField{}, false
+// }
 
 // Changes a struct with Nullable[T] by returning a map[string] from fields specified
 // func StructToMap(data any, fields []string) (map[string]any, error) {

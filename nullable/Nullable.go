@@ -867,6 +867,21 @@ func GetSelectedFields(any interface{}, fields []string) map[string]interface{} 
 	return result
 }
 
+func NewReadOnly[T any](data T) ReadOnly[T] {
+	return ReadOnly[T]{
+		data:  data,
+		Valid: true,
+	}
+}
+
+func NewReadOnlySelected[T any](data T, selected bool) ReadOnly[T] {
+	return ReadOnly[T]{
+		data:     data,
+		Selected: selected,
+		Valid:    true,
+	}
+}
+
 func getJsonTag(field reflect.StructField) string {
 	return strings.Split(field.Tag.Get(JSON), COMMA)[0]
 }

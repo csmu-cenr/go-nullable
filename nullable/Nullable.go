@@ -318,12 +318,12 @@ func (n ReadOnly[T]) ValueOrZero() T {
 
 // String Convert value to string
 func (n Nullable[T]) String() string {
-	return fmt.Sprintf("%s", any(n.Data))
+	return fmt.Sprintf("%v", any(n.Data))
 }
 
 // String Convert value to string
 func (n ReadOnly[T]) String() string {
-	return fmt.Sprintf("%s", any(n.data))
+	return fmt.Sprintf("%v", any(n.data))
 }
 
 // Equal Check if this Nullable is equal to another Nullable
